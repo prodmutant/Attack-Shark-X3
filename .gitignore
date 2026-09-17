@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+
+# python build products
+dist/
+build/
+*.egg-info/
+
+# driver build products. The .sys is signed with a certificate generated on
+# the machine that built it, which is trusted nowhere else - so it is of no
+# use to anyone downloading it. Build your own: python tools/build_driver.py
+driver/build/
+driver/out/

@@ -1,0 +1,15 @@
+[
+  {"label":"restore_dpi_stage","x":875,"y":277,"wait":3.0},
+
+  {"label":"open_power","x":937,"y":412,"wait":2.0},
+  {"label":"sleep_mid","x":900,"y":449,"wait":4.0},
+  {"label":"sleep_high","x":980,"y":449,"wait":4.0},
+  {"label":"sleep_restore","x":845,"y":449,"wait":4.0,"shot":"s_power_restored"},
+  {"label":"close_power","x":937,"y":412,"wait":2.0},
+
+  {"label":"open_debounce","x":937,"y":483,"wait":2.0},
+  {"label":"deb_mid","x":900,"y":516,"wait":4.0},
+  {"label":"deb_high","x":975,"y":516,"wait":4.0},
+  {"label":"deb_restore","x":820,"y":516,"wait":4.0,"shot":"s_deb_restored"},
+  {"label":"close_debounce","x":937,"y":483,"wait":2.0}
+]

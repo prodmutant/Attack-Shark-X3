@@ -1,0 +1,56 @@
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_enumerate@8", "mark": "boot", "t": 1789634937.261}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_open@12", "mark": "boot", "t": 1789634937.261}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_send_feature_report@12", "mark": "boot", "t": 1789634937.261}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_get_feature_report@12", "mark": "boot", "t": 1789634937.261}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_write@12", "mark": "boot", "t": 1789634937.261}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_read@12", "mark": "boot", "t": 1789634937.261}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_read_timeout@16", "mark": "boot", "t": 1789634937.262}
+{"dir": "--", "op": "ready", "data": "7 hook(s) installed at load", "mark": "boot", "t": 1789634937.262}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!Set_VIDPID", "mark": "boot", "t": 1789634937.306}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!Open_FeatureDevice", "mark": "boot", "t": 1789634937.306}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!SetFeature", "mark": "boot", "t": 1789634937.306}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!GetFeature", "mark": "boot", "t": 1789634937.306}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!Hid_Write", "mark": "boot", "t": 1789634937.306}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!Hid_Read", "mark": "boot", "t": 1789634937.306}
+{"dir": "--", "op": "hooked", "data": "hid.dll!HidD_SetFeature", "mark": "boot", "t": 1789634937.306}
+{"dir": "--", "op": "hooked", "data": "hid.dll!HidD_GetFeature", "mark": "boot", "t": 1789634937.307}
+{"dir": "--", "op": "hooked", "data": "hid.dll!HidD_SetOutputReport", "mark": "boot", "t": 1789634937.307}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!Set_VIDPID", "mark": "boot", "t": 1789634937.307}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!Open_FeatureDevice", "mark": "boot", "t": 1789634937.307}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!SetFeature", "mark": "boot", "t": 1789634937.308}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!GetFeature", "mark": "boot", "t": 1789634937.308}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!Hid_Write", "mark": "boot", "t": 1789634937.308}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!Hid_Read", "mark": "boot", "t": 1789634937.308}
+{"dir": "--", "op": "hiddriver_2.dll!Set_VIDPID", "data": "0x1d57 0xfa61", "mark": "boot", "t": 1789634937.308}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_03#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\kbd", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_02#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_00#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\kbd", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3142&pid_0009&mi_03#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_02&col01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_02&col02#8&INSTANCE&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_02&col03#8&INSTANCE&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_02&col04#8&INSTANCE&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_00#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\kbd", "mark": "boot", "t": 1789634937.311}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.312}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col02#8&INSTANCE&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.312}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col03#8&INSTANCE&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}\\kbd", "mark": "boot", "t": 1789634937.312}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col04#8&INSTANCE&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.312}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col05#8&INSTANCE&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789634937.312}
+{"dir": "--", "op": "hiddriver_2.dll!Open_FeatureDevice", "data": "0xd7a0c95e 0x1024778", "mark": "boot", "t": 1789634937.313}
+{"dir": "--", "op": "hiddriver_1.dll!Set_VIDPID", "data": "0x1d57 0xfa60", "mark": "boot", "t": 1789634937.314}
+{"dir": "--", "op": "hiddriver_1.dll!Open_FeatureDevice", "data": "0xd7a0c95e 0x1024778", "mark": "boot", "t": 1789634937.317}
+{"dir": "--", "op": "hidapi.dll!_hid_enumerate@8", "data": "0x45e 0x40", "mark": "boot", "t": 1789634937.318}
+{"dir": "##", "op": "MARK", "data": "open_mouse_attribute", "t": 1789634945.626}
+{"dir": "##", "op": "MARK", "data": "close_mouse_attribute", "t": 1789634949.693}
+{"dir": "##", "op": "MARK", "data": "open_power", "t": 1789634952.34}
+{"dir": "##", "op": "MARK", "data": "close_power", "t": 1789634956.389}
+{"dir": "##", "op": "MARK", "data": "open_lod", "t": 1789634959.03}
+{"dir": "##", "op": "MARK", "data": "close_lod", "t": 1789634963.079}
+{"dir": "##", "op": "MARK", "data": "open_debounce", "t": 1789634965.734}
+{"dir": "##", "op": "MARK", "data": "close_debounce", "t": 1789634969.783}
+{"dir": "##", "op": "MARK", "data": "open_ripple", "t": 1789634972.424}
+{"dir": "##", "op": "MARK", "data": "close_ripple", "t": 1789634976.503}
+{"dir": "##", "op": "MARK", "data": "open_angle", "t": 1789634979.139}
+{"dir": "##", "op": "MARK", "data": "close_angle", "t": 1789634983.188}
+{"dir": "##", "op": "MARK", "data": "open_motionsync", "t": 1789634985.846}

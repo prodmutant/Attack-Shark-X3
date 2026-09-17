@@ -1,0 +1,15 @@
+[
+  {"label":"open_mouse_attribute","x":937,"y":378,"wait":2.5,"shot":"p_attr"},
+  {"label":"close_mouse_attribute","x":937,"y":378,"wait":1.5},
+  {"label":"open_power","x":937,"y":412,"wait":2.5,"shot":"p_power"},
+  {"label":"close_power","x":937,"y":412,"wait":1.5},
+  {"label":"open_lod","x":937,"y":448,"wait":2.5,"shot":"p_lod"},
+  {"label":"close_lod","x":937,"y":448,"wait":1.5},
+  {"label":"open_debounce","x":937,"y":483,"wait":2.5,"shot":"p_debounce"},
+  {"label":"close_debounce","x":937,"y":483,"wait":1.5},
+  {"label":"open_ripple","x":937,"y":518,"wait":2.5,"shot":"p_ripple"},
+  {"label":"close_ripple","x":937,"y":518,"wait":1.5},
+  {"label":"open_angle","x":937,"y":552,"wait":2.5,"shot":"p_angle"},
+  {"label":"close_angle","x":937,"y":552,"wait":1.5},
+  {"label":"open_motionsync","x":937,"y":587,"wait":2.5,"shot":"p_motionsync"}
+]

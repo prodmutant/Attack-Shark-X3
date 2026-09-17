@@ -1,0 +1,6 @@
+[
+  {"label":"open_menu","x":175,"y":224,"wait":1.8},
+  {"label":"select_a_macro","menu":10,"wait":2.5},
+  {"label":"pick_macro1","dlg":[63,70],"wait":1.5},
+  {"label":"confirm_ok","dlg":[409,282],"wait":14.0}
+]

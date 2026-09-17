@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "attackshark-x3"
+version = "1.0.0"
+description = "Open driver for the Attack Shark X3 wireless mouse"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = ["hid", "mouse", "attack-shark", "beken", "reverse-engineering"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+]
+dependencies = []          # HID transport is ctypes over hid.dll / setupapi.dll
+
+[project.optional-dependencies]
+# Only needed to capture new traffic, never to drive the mouse.
+capture = ["frida-tools>=13", "pillow>=9"]
+
+[project.scripts]
+attackshark = "attackshark.cli:main"
+
+[tool.setuptools]
+packages = ["attackshark"]

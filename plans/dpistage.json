@@ -1,0 +1,8 @@
+[
+  {"label":"stage_0","x":832,"y":277,"wait":4.0},
+  {"label":"stage_1","x":875,"y":277,"wait":4.0},
+  {"label":"stage_3","x":960,"y":277,"wait":4.0},
+  {"label":"stage_4","x":1003,"y":277,"wait":4.0},
+  {"label":"stage_5","x":1046,"y":277,"wait":4.0},
+  {"label":"stage_2_restore","x":918,"y":277,"wait":4.0,"shot":"dpi_restored"}
+]

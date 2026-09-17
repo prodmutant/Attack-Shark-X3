@@ -1,0 +1,7 @@
+[
+  {"label":"open_power","x":937,"y":412,"wait":3.0},
+  {"label":"sleep_to_900","x":849,"y":449,"x2":900,"y2":449,"wait":4.5,"shot":"sl_900"},
+  {"label":"sleep_to_960","x":900,"y":449,"x2":960,"y2":449,"wait":4.5,"shot":"sl_960"},
+  {"label":"sleep_to_1035","x":960,"y":449,"x2":1035,"y2":449,"wait":4.5,"shot":"sl_1035"},
+  {"label":"sleep_back_min","x":1035,"y":449,"x2":845,"y2":449,"wait":4.5,"shot":"sl_min"}
+]

@@ -1,0 +1,7 @@
+[
+  {"label":"expand_polling_panel","x":937,"y":343,"wait":3.0},
+  {"label":"prate_125","x":895,"y":400,"wait":6.0},
+  {"label":"prate_250","x":895,"y":462,"wait":6.0},
+  {"label":"prate_500","x":963,"y":462,"wait":6.0},
+  {"label":"prate_1000","x":965,"y":400,"wait":6.0}
+]

@@ -1,0 +1,4 @@
+[
+  {"label":"open_menu","x":175,"y":224,"wait":1.8},
+  {"label":"select_a_macro","menu":10,"wait":2.5,"dialogshot":"dlg_macro"}
+]

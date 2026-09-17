@@ -1,0 +1,14 @@
+[
+  {"label":"open1","x":175,"y":224,"wait":1.8},
+  {"label":"easy_aim_m8","menu":8,"wait":4.5},
+  {"label":"open2","x":175,"y":224,"wait":1.8},
+  {"label":"scroll_up_m11","menu":11,"wait":4.5},
+  {"label":"open3","x":175,"y":224,"wait":1.8},
+  {"label":"scroll_down_m12","menu":12,"wait":4.5},
+  {"label":"open4","x":175,"y":224,"wait":1.8},
+  {"label":"left_click_m1","menu":1,"wait":4.5},
+  {"label":"open5","x":175,"y":224,"wait":1.8},
+  {"label":"forward_m4","menu":4,"wait":4.5},
+  {"label":"open6","x":175,"y":224,"wait":1.8},
+  {"label":"restore_backward_m5","menu":5,"wait":4.5}
+]

@@ -1,0 +1,8 @@
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_enumerate@8", "t": 1789634543.591}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_open@12", "t": 1789634543.591}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_send_feature_report@12", "t": 1789634543.591}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_get_feature_report@12", "t": 1789634543.591}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_write@12", "t": 1789634543.591}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_read@12", "t": 1789634543.591}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_read_timeout@16", "t": 1789634543.591}
+{"dir": "--", "op": "ready", "data": "7 hook(s) installed at load", "t": 1789634543.592}

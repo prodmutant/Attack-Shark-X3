@@ -1,0 +1,86 @@
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_enumerate@8", "mark": "boot", "t": 1789637901.352}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_open@12", "mark": "boot", "t": 1789637901.352}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_send_feature_report@12", "mark": "boot", "t": 1789637901.352}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_get_feature_report@12", "mark": "boot", "t": 1789637901.353}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_write@12", "mark": "boot", "t": 1789637901.353}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_read@12", "mark": "boot", "t": 1789637901.353}
+{"dir": "--", "op": "hooked", "data": "hidapi.dll!_hid_read_timeout@16", "mark": "boot", "t": 1789637901.353}
+{"dir": "--", "op": "ready", "data": "7 hook(s) installed at load", "mark": "boot", "t": 1789637901.353}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!Set_VIDPID", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!Open_FeatureDevice", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!SetFeature", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!GetFeature", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!Hid_Write", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hiddriver_2.dll!Hid_Read", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hid.dll!HidD_SetFeature", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hid.dll!HidD_GetFeature", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hid.dll!HidD_SetOutputReport", "mark": "boot", "t": 1789637901.386}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!Set_VIDPID", "mark": "boot", "t": 1789637901.387}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!Open_FeatureDevice", "mark": "boot", "t": 1789637901.387}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!SetFeature", "mark": "boot", "t": 1789637901.387}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!GetFeature", "mark": "boot", "t": 1789637901.387}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!Hid_Write", "mark": "boot", "t": 1789637901.387}
+{"dir": "--", "op": "hooked", "data": "hiddriver_1.dll!Hid_Read", "mark": "boot", "t": 1789637901.387}
+{"dir": "--", "op": "hiddriver_2.dll!Set_VIDPID", "data": "0x1d57 0xfa61", "mark": "boot", "t": 1789637901.387}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_03#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\kbd", "mark": "boot", "t": 1789637901.389}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_02#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.389}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_00#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\kbd", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3142&pid_0009&mi_03#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_02&col01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_02&col02#8&INSTANCE&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_02&col03#8&INSTANCE&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_02&col04#8&INSTANCE&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_1d57&pid_fa60&mi_00#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\\kbd", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col02#8&INSTANCE&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col03#8&INSTANCE&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}\\kbd", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col04#8&INSTANCE&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "open", "data": "\\\\?\\hid#vid_3151&pid_502d&mi_01&col05#8&INSTANCE&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}", "mark": "boot", "t": 1789637901.39}
+{"dir": "--", "op": "hiddriver_2.dll!Open_FeatureDevice", "data": "0x2085e9ed 0x9f4e70", "mark": "boot", "t": 1789637901.391}
+{"dir": "--", "op": "hiddriver_1.dll!Set_VIDPID", "data": "0x1d57 0xfa60", "mark": "boot", "t": 1789637901.392}
+{"dir": "--", "op": "hiddriver_1.dll!Open_FeatureDevice", "data": "0x2085e9ed 0x9f4e70", "mark": "boot", "t": 1789637901.394}
+{"dir": "--", "op": "hidapi.dll!_hid_enumerate@8", "data": "0x45e 0x40", "mark": "boot", "t": 1789637901.395}
+{"dir": "##", "op": "MARK", "data": "a0", "t": 1789637910.315}
+{"dir": "##", "op": "MARK", "data": "a1", "t": 1789637912.938}
+{"dir": "##", "op": "MARK", "data": "mm_media_player", "t": 1789637915.382}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 10, "data": "0c 0a 01 fe 01 fe 00 00 00 00", "mark": "mm_media_player", "t": 1789637916.139}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 10, "data": "0c 0a 01 fe 01 fe 00 00 00 00", "mark": "mm_media_player", "t": 1789637916.139}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 56, "data": "04 38 01 01 00 3f 00 00 0f 1f 2f 3f 7f 07 00 00 00 00 00 00 00 02 00 00 02 ff 00 00 00 ff 00 00 00 ff ff ff 00 00 ff ff ff 00 ff ff 40 00 ff ff ff 01 0e 9a 00 00 00 00", "mark": "mm_media_player", "t": 1789637917.141}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 56, "data": "04 38 01 01 00 3f 00 00 0f 1f 2f 3f 7f 07 00 00 00 00 00 00 00 02 00 00 02 ff 00 00 00 ff 00 00 00 ff ff ff 00 00 ff ff ff 00 ff ff 40 00 ff ff ff 01 0e 9a 00 00 00 00", "mark": "mm_media_player", "t": 1789637917.141}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 15, "data": "05 0f 01 00 03 a8 00 00 ff 01 19 01 c4 00 00", "mark": "mm_media_player", "t": 1789637918.143}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 15, "data": "05 0f 01 00 03 a8 00 00 ff 01 19 01 c4 00 00", "mark": "mm_media_player", "t": 1789637918.143}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 15, "data": "05 0f 01 00 03 a8 00 00 ff 01 19 01 c4 00 00", "mark": "mm_media_player", "t": 1789637918.645}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 15, "data": "05 0f 01 00 03 a8 00 00 ff 01 19 01 c4 00 00", "mark": "mm_media_player", "t": 1789637918.645}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 9, "data": "06 09 01 01 fe 00 00 00 00", "mark": "mm_media_player", "t": 1789637919.647}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 9, "data": "06 09 01 01 fe 00 00 00 00", "mark": "mm_media_player", "t": 1789637919.647}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 9, "data": "06 09 01 01 fe 00 00 00 00", "mark": "mm_media_player", "t": 1789637920.149}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 9, "data": "06 09 01 01 fe 00 00 00 00", "mark": "mm_media_player", "t": 1789637920.149}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 15 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 d2", "mark": "mm_media_player", "t": 1789637921.151}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 15 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 d2", "mark": "mm_media_player", "t": 1789637921.151}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 15 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 d2", "mark": "mm_media_player", "t": 1789637921.653}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 15 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 d2", "mark": "mm_media_player", "t": 1789637921.653}
+{"dir": "##", "op": "MARK", "data": "b0", "t": 1789637922.499}
+{"dir": "##", "op": "MARK", "data": "b1", "t": 1789637925.122}
+{"dir": "##", "op": "MARK", "data": "mm_mute", "t": 1789637927.538}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 1a 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 d7", "mark": "mm_mute", "t": 1789637928.415}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 1a 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 d7", "mark": "mm_mute", "t": 1789637928.415}
+{"dir": "##", "op": "MARK", "data": "c0", "t": 1789637934.781}
+{"dir": "##", "op": "MARK", "data": "c1", "t": 1789637937.392}
+{"dir": "##", "op": "MARK", "data": "br_home", "t": 1789637939.813}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 25 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 e2", "mark": "br_home", "t": 1789637940.559}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 25 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 e2", "mark": "br_home", "t": 1789637940.559}
+{"dir": "##", "op": "MARK", "data": "d0", "t": 1789637946.925}
+{"dir": "##", "op": "MARK", "data": "d1", "t": 1789637949.528}
+{"dir": "##", "op": "MARK", "data": "sc_cut", "t": 1789637951.954}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 11 01 1b 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 ea", "mark": "sc_cut", "t": 1789637952.719}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 11 01 1b 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 ea", "mark": "sc_cut", "t": 1789637952.719}
+{"dir": "##", "op": "MARK", "data": "e0", "t": 1789637959.08}
+{"dir": "##", "op": "MARK", "data": "e1", "t": 1789637962.06}
+{"dir": "##", "op": "MARK", "data": "sc_screen_capture", "t": 1789637964.572}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 11 0a 16 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 ee", "mark": "sc_screen_capture", "t": 1789637965.37}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 11 0a 16 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 ee", "mark": "sc_screen_capture", "t": 1789637965.37}
+{"dir": "##", "op": "MARK", "data": "f0", "t": 1789637971.737}
+{"dir": "##", "op": "MARK", "data": "restore", "t": 1789637974.394}
+{"dir": "TX", "op": "hiddriver_1.dll!SetFeature", "dev": "", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 05 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 c2", "mark": "restore", "t": 1789637975.176}
+{"dir": "TX", "op": "hid.dll!HidD_SetFeature", "dev": "1d57:fa60 mi02 col04", "len": 59, "data": "08 3b 01 02 00 00 03 00 00 04 00 00 0d 00 00 3c 00 00 0f 00 00 06 00 00 05 00 00 3c 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 01 00 00 0a 00 00 09 00 00 00 c2", "mark": "restore", "t": 1789637975.177}

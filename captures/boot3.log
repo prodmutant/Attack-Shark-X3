@@ -1,0 +1,10 @@
+[*] spawned C:\Program Files (x86)\Attack SharkX3Mouse\X3.exe (pid 10072)
+-- hooked                                  len=None :: hidapi.dll!_hid_enumerate@8
+-- hooked                                  len=None :: hidapi.dll!_hid_open@12
+-- hooked                                  len=None :: hidapi.dll!_hid_send_feature_report@12
+-- hooked                                  len=None :: hidapi.dll!_hid_get_feature_report@12
+-- hooked                                  len=None :: hidapi.dll!_hid_write@12
+-- hooked                                  len=None :: hidapi.dll!_hid_read@12
+-- hooked                                  len=None :: hidapi.dll!_hid_read_timeout@16
+[*] 7 hook(s) installed at load
+[*] logging -> captures/boot3.jsonl   (Ctrl-C to stop)

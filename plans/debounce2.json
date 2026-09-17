@@ -1,0 +1,6 @@
+[
+  {"label":"open_debounce","x":937,"y":483,"wait":2.5},
+  {"label":"deb_max","x":830,"y":516,"x2":1000,"y2":516,"wait":4.5,"shot":"db_max"},
+  {"label":"deb_min","x":1000,"y":516,"x2":805,"y2":516,"wait":4.5,"shot":"db_min"},
+  {"label":"close_debounce","x":937,"y":483,"wait":2.0}
+]

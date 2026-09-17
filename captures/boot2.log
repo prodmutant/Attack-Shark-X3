@@ -1,0 +1,40 @@
+[*] spawned C:\Program Files (x86)\Attack SharkX3Mouse\X3.exe (pid 19228)
+[*] logging -> captures/boot2.jsonl   (Ctrl-C to stop)
+-- open                                    len=None :: \\?\hid#vid_1d57&pid_fa60&mi_03#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd
+-- open                                    len=None :: \\?\hid#vid_3151&pid_502d&mi_02#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_3151&pid_502d&mi_00#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd
+-- open                                    len=None :: \\?\hid#vid_3142&pid_0009&mi_03#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_1d57&pid_fa60&mi_02&col01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_1d57&pid_fa60&mi_02&col02#8&INSTANCE&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_1d57&pid_fa60&mi_02&col03#8&INSTANCE&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_1d57&pid_fa60&mi_02&col04#8&INSTANCE&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_1d57&pid_fa60&mi_01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_1d57&pid_fa60&mi_00#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd
+-- open                                    len=None :: \\?\hid#vid_3151&pid_502d&mi_01&col01#8&INSTANCE&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_3151&pid_502d&mi_01&col02#8&INSTANCE&0&0001#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_3151&pid_502d&mi_01&col03#8&INSTANCE&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}\kbd
+-- open                                    len=None :: \\?\hid#vid_3151&pid_502d&mi_01&col04#8&INSTANCE&0&0003#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- open                                    len=None :: \\?\hid#vid_3151&pid_502d&mi_01&col05#8&INSTANCE&0&0004#{4d1e55b2-f16f-11cf-88cb-001111000030}
+-- hooked                                  len=None :: hiddriver_1.dll!Set_VIDPID
+-- hooked                                  len=None :: hiddriver_1.dll!Open_FeatureDevice
+-- hooked                                  len=None :: hiddriver_1.dll!SetFeature
+-- hooked                                  len=None :: hiddriver_1.dll!GetFeature
+-- hooked                                  len=None :: hiddriver_1.dll!Hid_Write
+-- hooked                                  len=None :: hiddriver_1.dll!Hid_Read
+-- hooked                                  len=None :: hiddriver_2.dll!Set_VIDPID
+-- hooked                                  len=None :: hiddriver_2.dll!Open_FeatureDevice
+-- hooked                                  len=None :: hiddriver_2.dll!SetFeature
+-- hooked                                  len=None :: hiddriver_2.dll!GetFeature
+-- hooked                                  len=None :: hiddriver_2.dll!Hid_Write
+-- hooked                                  len=None :: hiddriver_2.dll!Hid_Read
+-- hooked                                  len=None :: hidapi.dll!_hid_enumerate@8
+-- hooked                                  len=None :: hidapi.dll!_hid_open@12
+-- hooked                                  len=None :: hidapi.dll!_hid_send_feature_report@12
+-- hooked                                  len=None :: hidapi.dll!_hid_get_feature_report@12
+-- hooked                                  len=None :: hidapi.dll!_hid_write@12
+-- hooked                                  len=None :: hidapi.dll!_hid_read@12
+-- hooked                                  len=None :: hidapi.dll!_hid_read_timeout@16
+-- hooked                                  len=None :: hid.dll!HidD_SetFeature
+-- hooked                                  len=None :: hid.dll!HidD_GetFeature
+-- hooked                                  len=None :: hid.dll!HidD_SetOutputReport
+[*] 22 hook(s) installed

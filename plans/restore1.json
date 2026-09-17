@@ -1,0 +1,6 @@
+[
+  {"label":"open_lod","x":937,"y":448,"wait":2.5},
+  {"label":"lod_2mm_restore","x":940,"y":481,"wait":4.0,"shot":"r_lod"},
+  {"label":"close_lod","x":937,"y":448,"wait":2.5},
+  {"label":"open_power","x":937,"y":412,"wait":3.0,"shot":"r_power"}
+]

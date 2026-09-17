@@ -1,0 +1,21 @@
+[
+  {"label":"open_lod","x":937,"y":448,"wait":2.0},
+  {"label":"lod_1mm","x":832,"y":481,"wait":4.5},
+  {"label":"lod_2mm","x":940,"y":481,"wait":4.5},
+  {"label":"close_lod","x":937,"y":448,"wait":2.0},
+
+  {"label":"open_ripple","x":937,"y":518,"wait":2.0},
+  {"label":"ripple_on","x":940,"y":551,"wait":4.5},
+  {"label":"ripple_off","x":832,"y":551,"wait":4.5},
+  {"label":"close_ripple","x":937,"y":518,"wait":2.0},
+
+  {"label":"open_angle","x":937,"y":552,"wait":2.0,"shot":"t_angle"},
+  {"label":"angle_on","x":940,"y":585,"wait":4.5},
+  {"label":"angle_off","x":832,"y":585,"wait":4.5},
+  {"label":"close_angle","x":937,"y":552,"wait":2.0},
+
+  {"label":"open_motion","x":937,"y":587,"wait":2.0,"shot":"t_motion"},
+  {"label":"motion_on","x":940,"y":620,"wait":4.5},
+  {"label":"motion_off","x":832,"y":620,"wait":4.5},
+  {"label":"close_motion","x":937,"y":587,"wait":2.0,"shot":"t_motion_after"}
+]

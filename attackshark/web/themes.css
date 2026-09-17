@@ -1,0 +1,181 @@
+/* Themes.
+
+   Every theme is just a redefinition of the same token set, so nothing in the
+   rest of the stylesheet needs to know which one is active. Two extra tokens
+   drive the atmosphere: --wash-a / --wash-b for the page gradient, and
+   --scrim for the readability layer over the backdrop photo.
+
+   Light themes set --art:none, which hides the backdrop photo - a dark
+   photographic backdrop under dark text is unreadable, so they get a clean
+   surface instead. */
+
+:root,
+[data-theme="crimson"] {
+  --bg:#050506;  --panel:#0c0a0d;  --line:#1c181d;  --line2:#2e2630;
+  --fg:#eae3e2;  --dim:#877e86;
+  --accent:#a51f27; --accent-hi:#c8262f; --accent-dim:#3f1418;
+  --ok:#8fd14f;
+  --wash-a:#2a0d12; --wash-b:#16090f;
+  --scrim:5,5,6;   --art:1;  --art-opacity:.42;
+  --shell-a:#1e1824; --shell-b:#09070b; --btn-a:#282030; --btn-b:#171320;
+  --edge:#4a3f52;  --seam:#3a3142;
+  --surface:#151016;
+  --surface-hi:#1d1520;
+  --input-bg:#0a080b;
+  --seg-bg:#0e0b0f;
+  --seg-on:#2a2129;
+  --pad:#0d0a11;
+  --head-a:#140a0e;
+  --head-b:#0b080c;
+}
+
+/* black + red, hotter and cleaner than crimson */
+[data-theme="ember"] {
+  --bg:#080405;  --panel:#120809;  --line:#241113;  --line2:#3a1b1e;
+  --fg:#f4ecec;  --dim:#9a8486;
+  --accent:#e01b24; --accent-hi:#ff3b43; --accent-dim:#4a1013;
+  --ok:#59c46b;
+  --wash-a:#3a0d10; --wash-b:#1a0507;
+  --scrim:8,4,5;   --art:1;  --art-opacity:.30;
+  --shell-a:#241416; --shell-b:#0b0506; --btn-a:#31191c; --btn-b:#1a0d0f;
+  --edge:#5c3034;  --seam:#432326;
+  --surface:#1b0d0f;
+  --surface-hi:#241316;
+  --input-bg:#0d0708;
+  --seg-bg:#120809;
+  --seg-on:#331a1d;
+  --pad:#150a0c;
+  --head-a:#1c0709;
+  --head-b:#100507;
+}
+
+/* black + acid green */
+[data-theme="venom"] {
+  --bg:#040705;  --panel:#08110b;  --line:#122016;  --line2:#1d3323;
+  --fg:#e6f5e9;  --dim:#7f9c88;
+  --accent:#4ade4a; --accent-hi:#6bff6b; --accent-dim:#13361a;
+  --ok:#4ade4a;
+  --wash-a:#0c2a14; --wash-b:#061409;
+  --scrim:4,7,5;   --art:1;  --art-opacity:.22;
+  --shell-a:#122018; --shell-b:#050a07; --btn-a:#172b1d; --btn-b:#0c1710;
+  --edge:#2f5c3a;  --seam:#234429;
+  --surface:#0d1710;
+  --surface-hi:#132017;
+  --input-bg:#060c08;
+  --seg-bg:#08110b;
+  --seg-on:#1b3222;
+  --pad:#0a130d;
+  --head-a:#08170d;
+  --head-b:#050d08;
+}
+
+/* ---------------------------------------------------------- light themes --- */
+
+[data-theme="paper"] {
+  --bg:#f4f4f6;  --panel:#ffffff;  --line:#e2e2e8;  --line2:#c9c9d2;
+  --fg:#17171b;  --dim:#6b6b76;
+  --accent:#b3141c; --accent-hi:#d4181f; --accent-dim:#f6d9da;
+  --ok:#2f8f43;
+  --wash-a:#e9e9ef; --wash-b:#f4f4f6;
+  --scrim:244,244,246; --art:0; --art-opacity:0;
+  --shell-a:#ffffff; --shell-b:#ebebf0; --btn-a:#f7f7fa; --btn-b:#e8e8ee;
+  --edge:#9a9aa6;  --seam:#c9c9d2;
+  --surface:#f2f2f6;
+  --surface-hi:#e8e8ee;
+  --input-bg:#ffffff;
+  --seg-bg:#f7f7fa;
+  --seg-on:#dcdce4;
+  --pad:#eeeef3;
+  --head-a:#ffffff;
+  --head-b:#f4f4f6;
+}
+
+/* pink + white */
+[data-theme="sakura"] {
+  --bg:#fdf5f8;  --panel:#ffffff;  --line:#f4dce5;  --line2:#e6bfcf;
+  --fg:#3a2029;  --dim:#8c6b78;
+  --accent:#e8558c; --accent-hi:#ff6f9f; --accent-dim:#fbdde8;
+  --ok:#4aa06a;
+  --wash-a:#fbe4ee; --wash-b:#fdf5f8;
+  --scrim:253,245,248; --art:0; --art-opacity:0;
+  --shell-a:#ffffff; --shell-b:#f8e9ef; --btn-a:#fdf2f6; --btn-b:#f6e2ea;
+  --edge:#cf9bb1;  --seam:#e6bfcf;
+  --surface:#fbeff4;
+  --surface-hi:#f6e2ea;
+  --input-bg:#ffffff;
+  --seg-bg:#fdf6f9;
+  --seg-on:#f3d6e1;
+  --pad:#fbeaf1;
+  --head-a:#ffffff;
+  --head-b:#fdf5f8;
+}
+
+/* yellow + white */
+[data-theme="citrine"] {
+  --bg:#fffdf3;  --panel:#ffffff;  --line:#f1e8c9;  --line2:#ddcf9b;
+  --fg:#2e2a18;  --dim:#7d7458;
+  --accent:#c99700; --accent-hi:#e8b21a; --accent-dim:#fbf0cc;
+  --ok:#3f8f4a;
+  --wash-a:#fdf3d2; --wash-b:#fffdf3;
+  --scrim:255,253,243; --art:0; --art-opacity:0;
+  --shell-a:#ffffff; --shell-b:#f8f2dd; --btn-a:#fffbe9; --btn-b:#f4ecd3;
+  --edge:#c4b078;  --seam:#ddcf9b;
+  --surface:#fbf6e4;
+  --surface-hi:#f4ecd3;
+  --input-bg:#ffffff;
+  --seg-bg:#fffbeb;
+  --seg-on:#eee3c2;
+  --pad:#faf4df;
+  --head-a:#ffffff;
+  --head-b:#fffdf3;
+}
+
+/* ------------------------------------------------------- wiring the tokens - */
+
+body{
+  background-image:
+    radial-gradient(120% 70% at 50% -10%, var(--wash-a) 0%, transparent 60%),
+    radial-gradient(80% 50% at 100% 0%, var(--wash-b) 0%, transparent 70%);
+}
+body::before{ opacity:var(--art-opacity); }
+body::after{
+  background:linear-gradient(90deg,
+    rgb(var(--scrim)) 0%,
+    rgba(var(--scrim),.82) 46%,
+    rgba(var(--scrim),.55) 100%);
+}
+/* light themes drop the photo and the scrim entirely */
+[data-theme="paper"] body::before, [data-theme="sakura"] body::before,
+[data-theme="citrine"] body::before,
+[data-theme="paper"] body::after, [data-theme="sakura"] body::after,
+[data-theme="citrine"] body::after { display:none; }
+
+/* the mouse map reads from tokens so it themes with everything else */
+.shell{ stroke:var(--edge); }
+.seam{ stroke:var(--seam); }
+
+/* ------------------------------------------------------------- particles --- */
+#fx{
+  position:fixed;inset:0;width:100%;height:100%;
+  pointer-events:none;z-index:0;
+}
+@media (prefers-reduced-motion: reduce){ #fx{ display:none; } }
+
+/* ------------------------------------------------------- appearance panel -- */
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.swatch{
+  width:auto;min-width:74px;padding:6px 9px;cursor:pointer;
+  border:1px solid var(--line2);background:var(--panel);
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:11px;color:var(--dim);
+}
+.swatch:hover{border-color:var(--edge);color:var(--fg)}
+.swatch.on{border-color:var(--accent);color:var(--fg)}
+.swatch i{width:11px;height:11px;flex:none;display:block;border:1px solid rgba(128,128,128,.45)}
+
+/* SVG gradient stops follow the active theme */
+#shellgrad .sg0{stop-color:var(--shell-a)}
+#shellgrad .sg1{stop-color:var(--shell-b)}
+#btngrad  .bg0{stop-color:var(--btn-a)}
+#btngrad  .bg1{stop-color:var(--btn-b)}
+.hit rect.pad{fill:var(--pad)}

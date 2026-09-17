@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRODMUTANT — X3 Driver</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="themes.css">
+</head>
+<body>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<header class="top">
+  <div class="brand">
+    <img id="logo" class="logo" src="logo.png" alt="">
+    <div class="wordmark">
+      <b>PRODMUTANT</b>
+      <span>X3 DRIVER</span>
+    </div>
+  </div>
+  <div class="status">
+    <div class="batt" id="batt" title="read from the mouse, not the vendor app">
+      <span class="meter"><i id="battfill"></i></span>
+      <span class="pct" id="battpct">—</span>
+    </div>
+    <div class="link" id="link">
+      <!-- the one indicator here: it reports real hardware presence -->
+      <i class="dot" id="dot" aria-hidden="true"></i>
+      <span id="linktext">connecting…</span>
+      <em id="linkmeta"></em>
+    </div>
+  </div>
+</header>
+
+<main class="grid">
+
+  <section class="col">
+    <h2>Buttons</h2>
+    <div class="mouse">
+      <svg viewBox="0 0 170 244" id="mousemap" aria-label="mouse button map">
+        <defs>
+          <!-- flatter nose, full palm, ~2:1 - an ellipse reads as an egg -->
+          <path id="shellpath" d="M85 8
+            C106 8 119 20 124 40 C129 60 137 82 139 110
+            C141 148 136 184 124 206 C114 224 101 232 85 232
+            C69 232 56 224 46 206 C34 184 29 148 31 110
+            C33 82 41 60 46 40 C51 20 64 8 85 8Z"/>
+          <clipPath id="shellclip"><path d="M85 8
+            C106 8 119 20 124 40 C129 60 137 82 139 110
+            C141 148 136 184 124 206 C114 224 101 232 85 232
+            C69 232 56 224 46 206 C34 184 29 148 31 110
+            C33 82 41 60 46 40 C51 20 64 8 85 8Z"/></clipPath>
+          <linearGradient id="shellgrad" x1="0" y1="0" x2="0" y2="1">
+            <stop class="sg0" offset="0"/><stop class="sg1" offset="1"/>
+          </linearGradient>
+          <linearGradient id="btngrad" x1="0" y1="0" x2="0" y2="1">
+            <stop class="bg0" offset="0"/><stop class="bg1" offset="1"/>
+          </linearGradient>
+        </defs>
+
+        <!-- fills and seams live inside the clip so nothing escapes the shell -->
+        <g clip-path="url(#shellclip)">
+          <rect x="0" y="0" width="170" height="244" fill="url(#shellgrad)"/>
+          <g class="hit" data-btn="1"><rect class="face" x="-4" y="-4" width="87" height="114"/></g>
+          <g class="hit" data-btn="2"><rect class="face" x="87" y="-4" width="87" height="114"/></g>
+          <g class="hit" data-btn="3"><rect class="pad" x="76" y="24" width="18" height="46" rx="9"/></g>
+          <!-- inset from the silhouette so they read as side buttons, not tabs -->
+          <g class="hit side" data-btn="4"><rect class="pad" x="34" y="116" width="17" height="26" rx="6"/></g>
+          <g class="hit side" data-btn="5"><rect class="pad" x="34" y="146" width="17" height="26" rx="6"/></g>
+
+          <path class="seam" d="M29 110Q85 120 141 110"/>
+          <path class="seam" d="M85 4v106"/>
+          <rect class="seam" x="76" y="24" width="18" height="46" rx="9"/>
+          <rect class="seam" x="34" y="116" width="17" height="26" rx="6"/>
+          <rect class="seam" x="34" y="146" width="17" height="26" rx="6"/>
+        </g>
+
+        <use href="#shellpath" class="shell"/>
+
+        <text class="lbl" x="58" y="84">1</text>
+        <text class="lbl" x="112" y="84">2</text>
+        <text class="lbl" x="85" y="47">3</text>
+        <text class="lbl side" x="42" y="129">4</text>
+        <text class="lbl side" x="42" y="159">5</text>
+      </svg>
+      <ol class="btnlist" id="btnlist"></ol>
+    </div>
+  </section>
+
+  <section class="col wide">
+
+    <h2>DPI stages</h2>
+    <table class="dpi" id="dpi">
+      <thead><tr><th>#</th><th>DPI</th><th></th><th>Colour</th><th>Active</th></tr></thead>
+      <tbody id="dpibody"></tbody>
+    </table>
+    <div class="row">
+      <button class="btn" id="addstage">Add stage</button>
+      <button class="btn" id="delstage">Remove stage</button>
+      <span class="hint" id="dpihint"></span>
+    </div>
+
+    <h2>Polling rate</h2>
+    <div class="seg" id="polling"></div>
+
+    <h2>Sensor</h2>
+    <div class="fields">
+      <label>Lift-off distance<div class="seg" id="lod"></div></label>
+      <label>Motion sync<div class="seg" id="motion_sync"></div></label>
+      <label>Ripple control<div class="seg" id="ripple"></div></label>
+      <label>Angle snap<div class="seg" id="angle_snap"></div></label>
+    </div>
+
+    <h2>Power &amp; response</h2>
+    <div class="fields">
+      <label>Sleep
+        <div class="slide"><input type="range" id="sleep_min" min="0.5" max="30" step="0.5"><output id="sleep_min_o"></output></div>
+      </label>
+      <label>Deep sleep
+        <div class="slide"><input type="range" id="deep_sleep_min" min="1" max="60" step="1"><output id="deep_sleep_min_o"></output></div>
+      </label>
+      <label>Key response
+        <div class="slide"><input type="range" id="key_response_ms" min="2" max="50" step="2"><output id="key_response_ms_o"></output></div>
+      </label>
+    </div>
+
+    <h2>Macros</h2>
+    <div class="row">
+      <div class="seg" id="engine"></div>
+      <span class="hint" id="enginehint"></span>
+    </div>
+    <ol class="maclist" id="maclist"></ol>
+    <div class="row">
+      <button class="btn" id="macnew">New macro</button>
+      <span class="hint">a macro with movement runs from this app; a key-only one can be flashed into the mouse</span>
+    </div>
+
+    <h3 class="sub">Button bindings</h3>
+    <table class="binds"><tbody id="binds"></tbody></table>
+
+    <h2>Appearance</h2>
+    <div class="fields">
+      <label>Theme<div class="swatches" id="themes"></div></label>
+      <label>Particles<div class="swatches" id="fxpick"></div></label>
+    </div>
+
+    <h2>Profile</h2>
+    <div class="row">
+      <button class="btn" id="apply">Push everything</button>
+      <button class="btn" id="export">Export…</button>
+      <button class="btn" id="importbtn">Import…</button>
+      <button class="btn danger" id="reset">Factory reset</button>
+      <input type="file" id="importfile" accept="application/json" hidden>
+    </div>
+
+    <details class="packets">
+      <summary>Wire packets</summary>
+      <pre id="packets"></pre>
+    </details>
+
+  </section>
+</main>
+
+<!-- button assignment -->
+<dialog id="assign">
+  <form method="dialog">
+    <h3>Button <span id="assignno"></span></h3>
+    <div class="tabs">
+      <button type="button" class="tab on" data-pane="preset">Preset</button>
+      <button type="button" class="tab" data-pane="chord">Keyboard shortcut</button>
+    </div>
+    <div class="pane on" id="pane-preset">
+      <div class="presets" id="presets"></div>
+    </div>
+    <div class="pane" id="pane-chord">
+      <p class="hint">Click the field, then press the combination.</p>
+      <input id="chord" class="chord" readonly placeholder="press keys…">
+      <p class="hint" id="chordbytes"></p>
+    </div>
+    <div class="row end">
+      <button value="cancel" class="btn">Cancel</button>
+      <button value="ok" class="btn primary" id="assignok">Assign</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- macro editor -->
+<dialog id="macroedit">
+  <form method="dialog">
+    <h3>Macro</h3>
+    <div class="mrow">
+      <label class="grow">Name<input id="mname" class="chord" style="font-size:13px"></label>
+      <label>Repeat<div class="seg" id="mrepeat"></div></label>
+      <label id="mcountwrap">Times<input id="mcount" type="number" min="1" max="10000" class="num"></label>
+      <label>Speed<input id="mspeed" type="number" min="0.1" max="10" step="0.1" class="num"></label>
+    </div>
+
+    <div class="steps" id="msteps"></div>
+
+    <div class="row">
+      <button type="button" class="btn" data-add="key">+ key</button>
+      <button type="button" class="btn" data-add="mouse">+ click</button>
+      <button type="button" class="btn" data-add="move">+ move</button>
+      <button type="button" class="btn" data-add="wheel">+ wheel</button>
+      <button type="button" class="btn" data-add="delay">+ delay</button>
+      <button type="button" class="btn" id="mrec">Record</button>
+      <span class="hint" id="mstatus"></span>
+    </div>
+
+    <div class="row end">
+      <button value="cancel" class="btn">Cancel</button>
+      <button value="ok" class="btn primary" id="msave">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status"></div>
+
+<script src="fx.js"></script>
+<script src="app.js"></script>
+<script src="macros.js"></script>
+</body>
+</html>

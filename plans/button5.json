@@ -1,0 +1,10 @@
+[
+  {"label":"open_menu_b5","x":175,"y":224,"wait":1.8},
+  {"label":"set_double_click","menu":6,"wait":5.0},
+  {"label":"open_menu_b5_again","x":175,"y":224,"wait":1.8},
+  {"label":"set_fire_button","menu":7,"wait":5.0},
+  {"label":"open_menu_b5_third","x":175,"y":224,"wait":1.8},
+  {"label":"set_button_off","menu":13,"wait":5.0},
+  {"label":"open_menu_b5_fourth","x":175,"y":224,"wait":1.8},
+  {"label":"restore_backward","menu":5,"wait":5.0,"shot":"b5_restored"}
+]

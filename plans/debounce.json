@@ -1,0 +1,7 @@
+[
+  {"label":"baseline","wait":1.0,"shot":"db0"},
+  {"label":"open_debounce","x":937,"y":483,"wait":2.5,"shot":"db_open"},
+  {"label":"deb_mid","x":824,"y":516,"x2":900,"y2":516,"wait":4.5,"shot":"db_mid"},
+  {"label":"deb_high","x":900,"y":516,"x2":985,"y2":516,"wait":4.5,"shot":"db_high"},
+  {"label":"deb_restore","x":985,"y":516,"x2":812,"y2":516,"wait":4.5,"shot":"db_restore"}
+]

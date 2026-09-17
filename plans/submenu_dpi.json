@@ -1,0 +1,16 @@
+[
+  {"label":"open1","x":175,"y":224,"wait":1.5},
+  {"label":"open_dpi_sub","menu":14,"wait":1.5,"menushot":"sub_dpi","menu_index":1},
+  {"label":"dpi_sub_1","menu":1,"menu_index":1,"wait":4.5},
+
+  {"label":"open2","x":175,"y":224,"wait":1.5},
+  {"label":"open_dpi_sub2","menu":14,"wait":1.2},
+  {"label":"dpi_sub_2","menu":2,"menu_index":1,"wait":4.5},
+
+  {"label":"open3","x":175,"y":224,"wait":1.5},
+  {"label":"open_dpi_sub3","menu":14,"wait":1.2},
+  {"label":"dpi_sub_3","menu":3,"menu_index":1,"wait":4.5},
+
+  {"label":"open4","x":175,"y":224,"wait":1.5},
+  {"label":"restore_backward","menu":5,"wait":4.0}
+]

@@ -1,0 +1,90 @@
+;
+; asxfilter.inf - Attack Shark X3 mouse filter
+;
+; Installs asxfilter.sys as an UpperFilter on the X3's own mouse devnode. The
+; normal stack is left exactly as Windows built it: this INF chains msmouse.inf
+; for mouhid and mouclass and only appends a filter, so removing the driver
+; returns the mouse to the inbox configuration.
+;
+; It binds to the X3's hardware IDs alone - both the 2.4 GHz receiver (FA60)
+; and the wired link (FA61) - so no other pointing device on the machine is
+; touched.
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = Mouse
+ClassGuid   = {4D36E96F-E325-11CE-BFC1-08002BE10318}
+Provider    = %ProviderName%
+CatalogFile = asxfilter.cat
+DriverVer   = 01/01/2026,1.0.0.0
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+asxfilter.sys = 1,,
+
+[Manufacturer]
+%ManufacturerName% = Standard,NTamd64
+
+[Standard.NTamd64]
+%DeviceDesc% = AsxFilter_Inst, HID\VID_1D57&PID_FA60&MI_01
+%DeviceDesc% = AsxFilter_Inst, HID\VID_1D57&PID_FA61&MI_01
+
+; ---------------------------------------------------------------- install --
+
+[AsxFilter_Inst.NT]
+CopyFiles = AsxFilter_CopyFiles
+Include   = msmouse.inf
+Needs     = HID_Mouse_Inst.NT
+
+[AsxFilter_Inst.NT.HW]
+AddReg    = AsxFilter_AddReg
+Include   = msmouse.inf
+Needs     = HID_Mouse_Inst.NT.HW
+
+[AsxFilter_Inst.NT.Services]
+AddService = asxfilter,, AsxFilter_Service
+Include    = msmouse.inf
+Needs      = HID_Mouse_Inst.NT.Services
+
+[AsxFilter_CopyFiles]
+asxfilter.sys
+
+;
+; 0x00010008 = REG_MULTI_SZ | FLG_ADDREG_APPEND: add ourselves to whatever
+; upper filters the devnode already has rather than replacing the list.
+;
+[AsxFilter_AddReg]
+HKR,,"UpperFilters",0x00010008,"asxfilter"
+
+[AsxFilter_Service]
+DisplayName   = %ServiceDesc%
+ServiceType   = 1                   ; SERVICE_KERNEL_DRIVER
+StartType     = 3                   ; SERVICE_DEMAND_START
+ErrorControl  = 1                   ; SERVICE_ERROR_NORMAL
+ServiceBinary = %13%\asxfilter.sys
+
+; ------------------------------------------------------------------- kmdf --
+;
+; 1.31 is the KMDF version inbox on Windows 10 19045. Linking against a newer
+; one builds cleanly and then fails to load, because WdfLdr will not bind a
+; driver to a library the running system does not have.
+;
+[AsxFilter_Inst.NT.Wdf]
+KmdfService = asxfilter, AsxFilter_wdfsect
+
+[AsxFilter_wdfsect]
+KmdfLibraryVersion = 1.31
+
+[Strings]
+ProviderName     = "attackshark-x3"
+ManufacturerName = "Attack Shark"
+DiskName         = "Attack Shark X3 Filter Installation Disk"
+DeviceDesc       = "Attack Shark X3 Mouse (filtered)"
+ServiceDesc      = "Attack Shark X3 mouse filter"
