@@ -154,10 +154,11 @@ h2{
 .mouse svg{width:100%;max-width:190px;display:block;margin:0 auto 22px}
 .shell{fill:none;stroke:#4a3f52;stroke-width:2.2}
 .seam{stroke:#3a3142;stroke-width:1.2;fill:none}
-.hit rect{cursor:pointer;transition:fill .12s}
-.hit rect.face{fill:url(#btngrad)}
-.hit rect.pad{fill:var(--pad)}
-.hit:hover rect,.hit.sel rect{fill:var(--accent-dim)}
+.hit rect,.hit path{cursor:pointer;transition:fill .12s}
+.hit .face{fill:url(#btngrad)}
+.hit .pad{fill:var(--pad)}
+.hit:hover rect,.hit:hover path,
+.hit.sel rect,.hit.sel path{fill:var(--accent-dim)}
 .lbl{
   fill:var(--dim);font:600 13px var(--mono);text-anchor:middle;
   pointer-events:none;dominant-baseline:middle;

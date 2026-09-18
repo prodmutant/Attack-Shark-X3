@@ -116,28 +116,46 @@
         <!-- fills and seams live inside the clip so nothing escapes the shell -->
         <g clip-path="url(#shellclip)">
           <rect x="0" y="0" width="156" height="300" fill="url(#shellgrad)"/>
-          <g class="hit" data-btn="1"><rect class="face" x="-4" y="-4" width="82" height="150"/></g>
-          <g class="hit" data-btn="2"><rect class="face" x="78" y="-4" width="82" height="150"/></g>
-          <g class="hit" data-btn="3"><rect class="pad" x="70" y="38" width="16" height="54" rx="8"/></g>
-          <!-- placed where the reference's own tabs are: viewY 100-133, 138-160 -->
-          <g class="hit side" data-btn="4"><rect class="pad" x="12" y="100" width="13" height="32" rx="3"/></g>
-          <g class="hit side" data-btn="5"><rect class="pad" x="12" y="138" width="13" height="22" rx="3"/></g>
 
-          <path class="seam" d="M11 140Q78 154 145 140"/>
-          <path class="seam" d="M78 16V141"/>
+          <!--
+            The button faces follow the seam rather than being rectangles.
+            A rectangle ends on a straight line while the seam is a curve, so
+            the fill used to spill past it at both flanks and the shell read as
+            two edges. These are the two halves of the same quadratic, split at
+            its midpoint (78, 139.5), so the fill and the drawn seam are the
+            same line.
+          -->
+          <g class="hit" data-btn="1">
+            <path class="face" d="M-6 -6 H78 V139.5 Q48 139.5 18 132 L-6 130 Z"/>
+          </g>
+          <g class="hit" data-btn="2">
+            <path class="face" d="M78 -6 H162 V130 L138 132 Q108 139.5 78 139.5 Z"/>
+          </g>
+
+          <!-- seams before the pads: drawn after, the seam ran straight
+               through the lower side button -->
+          <path class="seam" d="M18 132Q78 147 138 132"/>
+          <path class="seam" d="M78 10V139"/>
+
+          <g class="hit" data-btn="3"><rect class="pad" x="70" y="38" width="16" height="54" rx="8"/></g>
+          <!-- inset from the flank: at this height the shell edge is x=10-12,
+               so a pad at x=12 was being clipped flat against it -->
+          <g class="hit side" data-btn="4"><rect class="pad" x="15" y="100" width="12" height="28" rx="3"/></g>
+          <g class="hit side" data-btn="5"><rect class="pad" x="15" y="136" width="12" height="28" rx="3"/></g>
+
           <rect class="seam" x="70" y="38" width="16" height="54" rx="8"/>
-          <rect class="seam" x="12" y="100" width="13" height="32" rx="3"/>
-          <rect class="seam" x="12" y="138" width="13" height="22" rx="3"/>
-          <circle class="sensor" cx="78" cy="168" r="2.5"/>
+          <rect class="seam" x="15" y="100" width="12" height="28" rx="3"/>
+          <rect class="seam" x="15" y="136" width="12" height="28" rx="3"/>
+          <circle class="sensor" cx="78" cy="196" r="2.5"/>
         </g>
 
         <use href="#shellpath" class="shell"/>
 
-        <text class="lbl" x="50" y="104">1</text>
-        <text class="lbl" x="106" y="104">2</text>
+        <text class="lbl" x="48" y="100">1</text>
+        <text class="lbl" x="108" y="100">2</text>
         <text class="lbl" x="78" y="65">3</text>
-        <text class="lbl side" x="18" y="116">4</text>
-        <text class="lbl side" x="18" y="149">5</text>
+        <text class="lbl side" x="21" y="114">4</text>
+        <text class="lbl side" x="21" y="150">5</text>
       </svg>
       <ol class="btnlist" id="btnlist"></ol>
     </div>
