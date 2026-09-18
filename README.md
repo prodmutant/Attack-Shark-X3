@@ -80,7 +80,26 @@ wrong rather than the method being wrong:
 
 ### Artwork
 
-Both the header mark and the backdrop are whatever images you drop in:
+The shipped mark and backdrop are drawn from the same reference as the mouse
+map, by the same route - so the badge in the header, the watermark behind the
+right-hand column and the drawing on the left are all one object:
+
+```
+python tools/make_mark.py --logo --backdrop
+```
+
+The logo is not simply the silhouette. Filled and shrunk to the 74px the header
+uses, the outline reads as a rounded blob that could be anything; the seam
+between the buttons and the wheel sitting in it are what make it legibly a
+mouse, so both are cut back out in the disc colour. The backdrop is stroked
+rather than filled for the opposite reason - at 900x1500, behind 42% opacity
+and a scrim, a filled silhouette is an enormous pale smudge, because a
+silhouette has no detail that survives being blown up that far.
+
+**Your own artwork instead.** Drop `logo.custom.png` or `backdrop.custom.png`
+into `attackshark/web/` and they win over the shipped files. Nothing else needs
+to know - the page still asks for `logo.png` - and `.gitignore` covers
+`*.custom.*`, so your face never becomes a commit. Any image will do:
 
 ```
 python tools/make_logo.py IMAGE --circle --fit --ring 3d9e60
@@ -284,6 +303,7 @@ mouse in this OEM family.
 | `tools/verify_injection.py` | **the proof** — hook flag and Raw Input device attribution, three ways |
 | `tools/probe_device_macro.py` | drive the firmware macro engine: selftest, watch, remap sanity check, movement-opcode probe |
 | `tools/replay_capture.py` | replay a captured write sequence back to the mouse, verbatim |
+| `tools/make_mark.py` | draw the shipped logo and backdrop from the traced outline |
 | `tools/make_logo.py` | fit any image into the header logo slot |
 | `tools/make_backdrop.py` | turn an image into the faded right-hand backdrop |
 | `tools/read_inputs.py` | listen on every collection for input reports |
