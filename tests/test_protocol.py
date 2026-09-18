@@ -18,8 +18,11 @@ sys.path.insert(0, ROOT)
 from attackshark import macro as M  # noqa: E402
 from attackshark import protocol as P  # noqa: E402
 
-#: filled in by main(); rebuild_macro_chunk needs every chunk, not just its own
-CORPUS = []
+#: captured 0x09 packet -> the 128-byte macro block it belongs to.
+#: Built by index_macro_blocks(); a chunk cannot be rebuilt from itself,
+#: and several distinct macros appear across the captures, so each packet has
+#: to be tied to its own block rather than to whichever was seen last.
+CHUNK_BLOCK = {}
 
 #: HID usage -> key name, for decoding a captured macro back into steps
 USAGE_NAMES = {v: k for k, v in P.HID_KEYS.items()}
@@ -68,27 +71,63 @@ def rebuild(pkt):
     return None
 
 
+def index_macro_blocks():
+    """Tie every captured report 0x09 packet to the block it is part of.
+
+    Chunks are only meaningful in sequence, so the capture files are read in
+    order rather than from the deduplicated corpus. The hook logs each write up
+    to three times, so repeats of the chunk we are already holding are ignored.
+    """
+    for path in sorted(glob.glob(os.path.join(ROOT, "captures", "*.jsonl"))):
+        pending = {}
+        order = []
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if not (row.get("op") or "").endswith("HidD_SetFeature"):
+                    continue
+                try:
+                    pkt = bytes(int(x, 16) for x in (row.get("data") or "").split())
+                except ValueError:
+                    continue
+                if not pkt or pkt[0] != M.DEV_REPORT:
+                    continue
+                idx = pkt[3]
+                if idx == 0:
+                    pending, order = {}, []
+                if idx in pending and pending[idx] == pkt:
+                    continue                    # wrapper duplicate
+                pending[idx] = pkt
+                order.append(pkt)
+                if idx == 2 and {0, 1, 2} <= set(pending):
+                    block = b"".join(pending[i][4:pending[i][1]] for i in (0, 1, 2))
+                    if len(block) == M.DEV_PAYLOAD_LEN:
+                        for q in order:
+                            CHUNK_BLOCK[q] = block
+                    pending, order = {}, []
+
+
 def rebuild_macro_chunk(pkt):
     """Rebuild one report 0x09 chunk from the macro it encodes.
 
     Unlike the config blocks there is nothing to parse and re-emit field by
-    field - the block *is* the macro. So decode the events back into a macro.py
-    macro, rebuild the upload from that, and require the chunk at the same
-    index to match. If the block layout, the chunking, the event encoding or
-    the checksum in macro.py were wrong, this would diverge.
+    field - the block *is* the macro. So decode its events back into a macro.py
+    macro, rebuild the upload from that at the block's own slot, and require
+    the chunk at the same index to match. If the block layout, the chunking,
+    the event encoding, the slot byte or the checksum were wrong, this would
+    diverge.
     """
-    index = pkt[3]
-
-    # only the chunk carrying the event table tells us what the macro was;
-    # the others are rebuilt from whatever that one decodes to.
-    blocks = {}
-    for other in CORPUS:
-        if other and other[0] == M.DEV_REPORT and other[2] == M.DEV_BLOCK:
-            blocks[other[3]] = other[4:other[1]]
-    block = b"".join(blocks[i] for i in sorted(blocks))
-    if len(block) != M.DEV_PAYLOAD_LEN:
+    block = CHUNK_BLOCK.get(pkt)
+    if block is None:
         return None
 
+    slot = block[0]
     count = block[M.DEV_COUNT_AT]
     steps = []
     for i in range(count):
@@ -98,19 +137,21 @@ def rebuild_macro_chunk(pkt):
         if name is None or flags not in (M.DEV_PRESS, M.DEV_RELEASE):
             return None
         steps.append({"t": "key", "key": name, "down": flags == M.DEV_PRESS})
+    if not steps:
+        return None
 
-    chunks = M.build_device_upload(M.validate({"name": "captured", "steps": steps}))
+    chunks = M.build_device_upload(
+        M.validate({"name": "captured", "steps": steps}), slot)
+    index = pkt[3]
     if index >= len(chunks):
         return None
     got = chunks[index]
-    # the capture holds the whole 64-byte buffer; compare like for like
     return got[:len(pkt)] if len(got) >= len(pkt) else got
 
 
 def main():
-    global CORPUS
     corpus = load_corpus()
-    CORPUS = corpus
+    index_macro_blocks()
     if not corpus:
         print("no captures found - run tools/exercise.py first")
         return 1

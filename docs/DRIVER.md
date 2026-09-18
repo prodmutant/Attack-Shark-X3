@@ -38,21 +38,31 @@ is not "does this look like a hand" but "did this come from a device".
 So the movement has to enter the stack below the point where that question is
 answered.
 
-## 2. The mouse cannot do it itself
+## 2. The mouse can type, but it cannot move
 
 The obvious place for the movement to come from is the mouse, and the X3 does
-have an on-board macro engine: report `0x09`, decoded in
-[`PROTOCOL.md` §8](PROTOCOL.md#8-report-0x09--macro-upload).
+have a working on-board macro engine: report `0x09`, decoded in
+[`PROTOCOL.md` §8](PROTOCOL.md#8-report-0x09--macro-upload). This project drives
+it, and it is genuinely the ideal mechanism — a macro played by the firmware
+produces real HID reports from real hardware, with no injection flag, no driver
+and no reboot. *(verified: 52 keystrokes from the mouse's own keyboard
+collection, `LLKHF_INJECTED` clear on every one)*
 
-It cannot help. A stored macro event is **two bytes**, `[flags, HID usage]` —
-`0x01` for press, `0x81` for release. There is no third byte, so there is
-nowhere for a movement delta to live, and `macro.py`'s `device_support()` says
-so for any macro containing a `move` step. Even if there were room, a firmware
-macro is a fixed sequence played on a button press: no host feedback, no
-"move to what is on screen now". It is the wrong shape for the job as well as
-too small for it.
+It cannot do movement. A stored event is **two bytes**, `[flags, HID usage]` —
+`0x01` press, `0x81` release — and that is all the firmware will accept. This
+was tested rather than inferred, four ways: the vendor's macro editor has only
+Key / Action / Delay columns; every captured block contains only key events;
+`0xF9` (the movement opcode in Attack Shark's *keyboard* driver, a four-byte
+`[type, delay, dx, dy]` record) is rejected outright, with the bound button
+falling back to its default action; and neither vendor binary references any
+test or calibration mode. §8 has the detail.
 
-That leaves the host — but *where* on the host.
+Even with room, a firmware macro is a fixed sequence played on a button press:
+no host feedback, no "move to what is on screen now". It is the wrong shape for
+the job as well as too small for it.
+
+So key macros belong on the device, and movement has to be host-side — but
+*where* on the host.
 
 ## 3. Where the filter sits
 

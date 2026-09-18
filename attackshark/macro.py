@@ -42,6 +42,13 @@ DEV_BLOCK = 0x08
 DEV_CHUNK = 64
 DEV_CHUNK_PAYLOAD = DEV_CHUNK - 4
 DEV_PAYLOAD_LEN = 128          # reassembled block, incl. the trailing checksum
+
+#: Macro slot, stored at payload[0]. Slot 0 is treated by the firmware as
+#: "unset": a block uploaded there is accepted, checksums fine, and then never
+#: plays - the bound button silently falls back to its default action. The
+#: vendor app uses 2, and 2 is verified to play. This cost a whole debugging
+#: session; see PROTOCOL.md section 8.
+DEV_SLOT = 2
 DEV_COUNT_AT = 25              # event count
 DEV_EVENTS_AT = 26
 DEV_MAX_EVENTS = (DEV_PAYLOAD_LEN - 2 - DEV_EVENTS_AT) // 2
@@ -167,13 +174,14 @@ def to_device_events(macro):
     return out
 
 
-def build_device_block(macro):
+def build_device_block(macro, slot=DEV_SLOT):
     """The 128-byte macro block, checksummed the way every other block is."""
     ok, why = device_support(macro)
     if not ok:
         raise MacroError(why)
     events = to_device_events(macro)
     buf = bytearray(DEV_PAYLOAD_LEN)
+    buf[0] = slot & 0xFF                # 0 means "unset" - see DEV_SLOT
     buf[4] = 0x01                       # constant in the captured block
     buf[DEV_COUNT_AT] = len(events)
     for i, (flags, usage) in enumerate(events):
@@ -185,9 +193,9 @@ def build_device_block(macro):
     return bytes(buf)
 
 
-def build_device_upload(macro):
+def build_device_upload(macro, slot=DEV_SLOT):
     """The report 0x09 chunks to send, in order."""
-    block = build_device_block(macro)
+    block = build_device_block(macro, slot)
     chunks = []
     for index in range(0, (len(block) + DEV_CHUNK_PAYLOAD - 1) // DEV_CHUNK_PAYLOAD):
         part = block[index * DEV_CHUNK_PAYLOAD:(index + 1) * DEV_CHUNK_PAYLOAD]

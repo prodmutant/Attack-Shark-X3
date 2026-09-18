@@ -5,9 +5,9 @@ reverse-engineering toolkit used to produce it.
 
 The stock software (`X3.exe`, a closed 32-bit DuiLib app) is the only way to
 configure this mouse. This project replaces it with ~2600 lines of
-dependency-free Python and a ~1500-line local web interface, adds a ~1150-line
-kernel filter driver so macros can move the pointer *as the mouse*, and
-documents the wire protocol so anyone can port it.
+dependency-free Python and a ~1500-line local web interface, uploads key macros
+into the mouse's own firmware, ships an optional ~1150-line kernel filter driver
+for host-side movement, and documents the wire protocol so anyone can port it.
 
 ```
 attackshark gui                      # local web interface
@@ -47,32 +47,51 @@ frame. `make_backdrop` cover-fits the image, dims it, and bakes a left-to-right
 alpha ramp so it melts into the page rather than sitting on it as a rectangle -
 tune with `--fade` and `--dim`. Both need Pillow; nothing else does.
 
-## Real mouse movement
+## Macros: on the mouse, or on the host
 
-Macros can move the pointer, and the movement does not come from `SendInput`.
+Macros run in one of two places, and the difference is not cosmetic.
 
-That distinction is the point. Windows offers two independent ways to ask where
-an input event came from, and `SendInput` fails both: a low-level hook sees
-`LLMHF_INJECTED`, and Raw Input reports a **null** device handle instead of a
-device. No amount of realism in the trajectory changes either answer, because
-the question is not "does this look like a hand" but "did this come from a
-device".
+**On the mouse.** Key macros are uploaded into the firmware (report `0x09`) and
+played by the hardware itself. Verified on a real device: 52 keystrokes
+attributed to `HID\VID_1D57&PID_FA60&MI_00` — the mouse's own keyboard
+collection — with the injected flag clear on every one. No driver, no kernel
+code, no test signing, no reboot, and Secure Boot is irrelevant, because the
+mouse genuinely sent those reports. This is the same mechanism the vendor
+software uses, and it is the safe default.
 
-The mouse cannot answer it either. Its firmware macro engine is real and now
-decoded (report `0x09`, §8), but a stored event is two bytes — `[flags, HID
-usage]` — with no room for a movement delta, and no way to react to anything.
+Getting there took one non-obvious discovery: **macro slot 0 is inert.** A block
+written to slot 0 is accepted, checksums fine, and never plays — the bound
+button silently reverts to its default action. The vendor app writes Macro1 to
+slot 0 on startup, so replaying its traffic byte-for-byte reproduces a
+configuration that does not work. Slot 2 plays. See §8.
 
-So `driver/asxfilter/` is a KMDF filter driver that attaches to the X3's own
-mouse devnode, between `mouhid` and `mouclass`. It intercepts
-`IOCTL_INTERNAL_MOUSE_CONNECT` to capture `MouseClassServiceCallback`, and then
-emits movement by *calling that function* — the same call, the same arguments,
-the same IRQL that `mouhid` uses for a physical report. Nothing on that route
-sets an injection flag, and `mouclass` attributes the report to the X3.
+**On the host,** for anything the firmware will not store — which means all
+mouse movement. A stored event is two bytes, `[flags, HID usage]`, and that is
+all it accepts: the vendor's editor has only Key / Action / Delay columns, every
+captured block holds only key events, and `0xF9` — the movement opcode used by
+Attack Shark's *keyboard* driver — is rejected outright by this firmware. §8
+gives all four lines of evidence. `macro.py`'s `device_support()` decides per
+macro and the UI shows which target each one uses.
+
+Host movement goes out through `SendInput`, which Windows marks as injected: a
+low-level hook sees `LLMHF_INJECTED`, and Raw Input reports a null device handle
+instead of a device. No amount of realism in the trajectory changes that,
+because the question being asked is not "does this look like a hand" but "did
+this come from a device".
+
+### The optional filter driver
+
+`driver/asxfilter/` answers that question differently. It is a KMDF filter on
+the X3's own mouse devnode, between `mouhid` and `mouclass`. It intercepts
+`IOCTL_INTERNAL_MOUSE_CONNECT` to capture `MouseClassServiceCallback`, then
+emits movement by *calling that function* — the same call, arguments and IRQL
+`mouhid` uses for a physical report. Nothing on that route sets an injection
+flag, and `mouclass` attributes the report to the X3.
 
 It also owns the physical side: a button bound to a macro is swallowed inside
-the driver, so no application sees the click at all, and triggers arrive
-through a pending IOCTL that completes before `mouclass` has seen them. The
-low-level mouse hook is gone when the driver is loaded.
+the driver, so no application sees the click at all, and triggers arrive through
+a pending IOCTL that completes before `mouclass` has seen them. The low-level
+mouse hook is gone when the driver is loaded.
 
 ```
 python tools/build_driver.py        # build, catalogue, test-sign
@@ -80,17 +99,12 @@ tools\install_driver.ps1            # trust, test-signing, stage, bind
 python tools/verify_injection.py    # prove it
 ```
 
-`verify_injection.py` runs the same movement three ways — by hand, through
-`SendInput`, through the driver — while watching with both detection mechanisms
-at once, and prints what each one saw.
-
-**Requires Secure Boot off**, because a self-signed kernel driver needs test
-signing and `bcdedit` refuses while Secure Boot is on. Test signing also brings
-a desktop watermark and makes some kernel anti-cheat products refuse to run. If
-that is unacceptable, this is the wrong tool — [`docs/DRIVER.md`](docs/DRIVER.md)
-§9 is explicit about what this does and does not defeat, including that it does
-not hide from anything enumerating the mouse stack, and that keystrokes still
-go out through `SendInput`.
+**It is off by default and you probably do not want it.** A self-signed kernel
+driver needs test signing, which needs Secure Boot off, which brings a desktop
+watermark and makes some kernel anti-cheat products refuse to run — and a custom
+filter on the mouse stack is a far louder signal than the injected flag it
+removes. [`docs/DRIVER.md`](docs/DRIVER.md) §9 is explicit about what it does
+and does not defeat.
 
 > Built, signed and unit-tested; **not yet observed running**, because Secure
 > Boot is enabled on the machine it was developed on. See `docs/DRIVER.md`.
@@ -98,13 +112,14 @@ go out through `SendInput`.
 ## Status
 
 The protocol is documented in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
-`tests/test_protocol.py` reconstructs **all 50 unique packets** captured from the
-vendor tool, byte-for-byte, from the documented encodings — including the three
-macro-upload chunks, which are rebuilt from the macro they encode:
+`tests/test_protocol.py` reconstructs **58 of the 60 unique packets** captured
+from the vendor tool, byte-for-byte, from the documented encodings — including
+the macro-upload chunks, which are rebuilt from the macro they encode at the
+block's own slot (the two skipped are the chunks of an empty macro):
 
 ```
 $ python tests/test_protocol.py
-50/50 packets round-tripped exactly
+58/60 packets round-tripped exactly, 2 skipped
 PASS - protocol.py reproduces every captured packet byte-for-byte
 
 $ python tests/test_kdriver.py
@@ -123,8 +138,9 @@ static and wrong), **macro upload into the mouse** for key-only macros, and
 **Not yet mapped:** lighting effects (the X3 build of the vendor UI never shows
 the lighting page, so nothing could be captured), per-event delays inside a
 device macro (the firmware block has no field for them), mouse buttons inside a
-device macro (not sampled), and a handful of multimedia/browser codes that were
-not individually sampled. See §6, §8 and §10 of the protocol doc.
+device macro (not sampled — the vendor editor does not offer them), and a
+handful of multimedia/browser codes that were not individually sampled.
+See §6, §8 and §10 of the protocol doc.
 
 ## Requirements
 
@@ -205,6 +221,8 @@ mouse in this OEM family.
 | `tools/install_driver.ps1` | trust the cert, enable test signing, stage the package, bind the devnode |
 | `tools/uninstall_driver.ps1` | reverse all of the above |
 | `tools/verify_injection.py` | **the proof** — hook flag and Raw Input device attribution, three ways |
+| `tools/probe_device_macro.py` | drive the firmware macro engine: selftest, watch, remap sanity check, movement-opcode probe |
+| `tools/replay_capture.py` | replay a captured write sequence back to the mouse, verbatim |
 | `tools/make_logo.py` | fit any image into the header logo slot |
 | `tools/make_backdrop.py` | turn an image into the faded right-hand backdrop |
 | `tools/read_inputs.py` | listen on every collection for input reports |

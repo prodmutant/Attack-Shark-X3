@@ -3,8 +3,9 @@
 Reverse engineered from `X3.exe` (Attack Shark X3 Mouse driver, build 2024‑01‑12)
 by instrumenting its HID calls and diffing labelled captures. Every statement
 marked **confirmed** is backed by captured packets in `captures/`, and
-`tests/test_protocol.py` rebuilds all 46 unique captured packets byte‑for‑byte
-from the encodings below.
+`tests/test_protocol.py` rebuilds 58 of the 60 unique captured packets
+byte‑for‑byte from the encodings below (the two skipped are the chunks of an
+*empty* macro block, which has no events to rebuild from).
 
 ---
 
@@ -335,13 +336,41 @@ only 8 payload bytes. Inside the reassembled 128-byte block:
 
 ```
 off  size  field
-  0   4    zero
+  0   1    macro slot            (see below - 0 does NOT work)
+  1   3    zero
   4   1    0x01, constant in every capture
   5   20   zero
  25   1    event count            (0x0e = 14, i.e. 7 press/release pairs)
- 26   2*n  events
+ 26   2*n  events                 (spills into chunk 1 past 17 events)
 126   2    checksum, 16-bit big-endian sum of bytes 0..125
 ```
+
+The event table is a flat run inside the 128-byte block, not a per-chunk
+structure: a 20-event macro was observed with its last three events in chunk 1,
+so chunking is a transport detail applied after the block is laid out.
+
+### The slot byte — `0` means "unset"  *(confirmed the hard way)*
+
+Byte 0 is the macro slot, and **a block uploaded to slot 0 never plays.** The
+write succeeds, `HidD_SetFeature` returns true, the checksum is accepted, and
+the bound button then silently falls back to its default action as though no
+macro were assigned.
+
+This is not obvious from the traffic, because the vendor app writes Macro1 to
+slot 0 on every startup. Replaying that capture byte-for-byte — same bytes,
+same order, same checksums — reproduces a configuration that does not work,
+and it is easy to conclude from it that device macros are broken. They are not:
+the vendor uses slot `2` for macros it actually assigns, and slot 2 plays.
+
+Verified: 7 × `c` uploaded to slot 2 and bound to button 5 produced 52 `c`
+keystrokes attributed to `HID\VID_1D57&PID_FA60&MI_00` — the mouse's own
+keyboard collection — with `LLKHF_INJECTED` clear on every one. The same block
+at slot 0 produced nothing. `attackshark/macro.py` defaults to `DEV_SLOT = 2`.
+
+This matters beyond correctness: a macro played by the firmware is genuine
+hardware input. It carries no injection flag, needs no driver, no signed
+kernel code and no reboot, and is unaffected by Secure Boot — because the mouse
+really did send those reports.
 
 Each event is **two bytes**, `[flags, hid_usage]`:
 
@@ -362,20 +391,43 @@ Checksum check on the captured block: `0x01 + 0x0e + 7 × (0x01+0x06+0x81+0x06)`
 `0x12` with the macro index, captured as `12 00 08` in the same session's
 report `0x08`.
 
-### What the firmware cannot store
+### What the firmware cannot store  *(tested, not assumed)*
 
 Two bytes per event is the whole budget, and it is spent on flags and a HID
-usage. There is no third byte, which means:
+usage. The first version of this section inferred the consequences from a
+single captured macro; they have since been tested, because the answer decides
+whether real mouse movement can come from the hardware at all.
 
-- **no movement.** A `dx,dy` delta does not fit, so mouse movement can never
-  come from a device macro. This is why movement is a host concern and why
-  `docs/DRIVER.md` exists.
-- **no per-event delay.** The 20 zero bytes at offset 5 are the only
-  unexplained space in the block and are the only plausible home for timing,
-  but nothing observed ever set them: the vendor UI's per-event delay of 10 ms
-  left them zero. Playback timing is presumably the key response time (§4).
-- **no mouse buttons.** Not sampled; the usage byte may or may not accept
-  button codes.
+**No movement.** Four independent lines of evidence:
+
+1. The vendor's macro editor has exactly three columns. From `res/lan.xml`:
+   `macro_list_header_key_text` = "Key", `..._action_text` = "Action",
+   `..._delay_text` = "Delay(ms)". There is no movement column and no
+   mouse-button column. ("Move Up"/"Move Down" reorder the list.)
+2. Every macro block captured — five distinct ones, including a freshly
+   recorded macro — contains only types `0x01`/`0x81` with keyboard usages.
+3. `0xF9` was tested directly. The Attack Shark v4 driver (a *different*
+   product, a keyboard) decodes mouse movement as a 4-byte record
+   `[0xF9, delay, dx, dy]` with signed `dx`/`dy`. Uploading that to the X3
+   produced no movement, and the bound button reverted to its default action —
+   the firmware parsed the block, rejected the unknown type, and discarded the
+   whole macro. That rejection is itself a useful signal: *macro plays* versus
+   *button falls back* is a clean pass/fail for any candidate opcode.
+4. Neither `X3.exe` nor `hiddriver_1.dll` contains any test, factory or
+   calibration strings, and no report ID beyond the six documented here.
+
+So movement from a device macro is not available on this mouse. It is a host
+concern, which is why `docs/DRIVER.md` exists.
+
+**No per-event delay.** The 20 zero bytes at offset 5 are the only unexplained
+space in the block and the only plausible home for timing, but nothing observed
+ever set them — the vendor UI has a `Delay(ms)` column and stores delays in
+`macro.data`, yet drops them on upload. Playback timing is presumably the key
+response time (§4).
+
+**Mouse buttons: not sampled.** The vendor editor does not offer them, so no
+capture exists. The usage byte may or may not accept button codes; a sweep
+using the pass/fail signal from point 3 would settle it.
 
 `macro.py`'s `device_support()` reports which of these a given macro trips, and
 falls back to host playback when it trips any.
@@ -439,8 +491,11 @@ firmware supports even where the wire encoding is not yet mapped:
 | Report `0x0C` semantics | open |
 | Battery level (`0x000A` input report) | confirmed, reproducible |
 | Status bytes 3 and 4 | unknown |
-| Macro upload (`0x09`), chunking, block layout, checksum | confirmed |
+| Macro upload (`0x09`), chunking, block layout, checksum | confirmed, 5 blocks |
 | Macro event encoding (`[flags, usage]`, `0x01`/`0x81`) | confirmed |
+| Macro slot byte; slot 0 is inert | confirmed, playback verified |
+| Device macro playback (firmware, no injection flag) | confirmed on hardware |
 | Macro event delays inside the device block | not encoded — see §8 |
+| Movement inside a device macro | tested and absent — see §8 |
 | Mouse buttons inside a device macro | not sampled |
 | Lighting | not observed |
