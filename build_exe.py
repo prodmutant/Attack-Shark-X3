@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 NAME = "PRODMUTANT X3 Driver"
@@ -46,11 +47,31 @@ def ensure_icon():
     print(f"made {ICON}")
 
 
+def stage_web(into):
+    """A copy of the interface with anyone's private artwork left behind.
+
+    `--add-data` takes a directory and takes all of it, and `attackshark/web`
+    is exactly where the `.custom.` override files live - so building on a
+    machine that has them quietly bakes them into the executable and ships
+    them to everybody. That happened once. Staging a filtered copy is the only
+    place this can be fixed, because by the time PyInstaller has the directory
+    it is already too late.
+    """
+    dst = os.path.join(into, "attackshark", "web")
+    shutil.copytree(os.path.join(ROOT, "attackshark", "web"), dst,
+                    ignore=shutil.ignore_patterns("*.custom.*", "__pycache__"))
+    left = sorted(f for f in os.listdir(dst) if ".custom." in f)
+    assert not left, f"private artwork reached the bundle: {left}"
+    return dst
+
+
 def main():
     ensure_icon()
     with open(ENTRY, "w", encoding="utf-8") as fh:
         fh.write(ENTRY_SRC)
 
+    stage = tempfile.mkdtemp(prefix="asx-build-")
+    web = stage_web(stage)
     sep = ";" if os.name == "nt" else ":"
     args = [
         sys.executable, "-m", "PyInstaller",
@@ -59,8 +80,8 @@ def main():
         "--windowed",                      # no console window
         "--name", NAME,
         "--icon", ICON,
-        # the interface travels inside the exe
-        "--add-data", f"attackshark{os.sep}web{sep}attackshark{os.sep}web",
+        # the interface travels inside the exe, from the staged copy
+        "--add-data", f"{web}{sep}attackshark{os.sep}web",
         # ctypes-only project: nothing heavy to pull in
         "--exclude-module", "tkinter",
         "--exclude-module", "PIL",
@@ -69,7 +90,10 @@ def main():
         ENTRY,
     ]
     print(" ".join(args[:6]), "...\n")
-    r = subprocess.run(args, cwd=ROOT)
+    try:
+        r = subprocess.run(args, cwd=ROOT)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
     if r.returncode != 0:
         sys.exit(r.returncode)
 
