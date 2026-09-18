@@ -3,6 +3,10 @@
 Stdlib only: http.server plus json. The browser gets a static page and talks to
 a small JSON API that drives attackshark.device. Bound to 127.0.0.1 - this
 exposes control of a USB device, so it must never listen on a routable address.
+
+Binding to the loopback address keeps the network out. It does **not** keep
+other websites out, and that distinction is the whole of `_request_allowed`
+below - see the comment there before changing anything about it.
 """
 from __future__ import annotations
 
@@ -376,6 +380,53 @@ def macro_flash(payload):
     return _snapshot(mouse.state)
 
 
+LOCAL_HOSTS = ("127.0.0.1", "localhost", "[::1]")
+
+
+def _request_allowed(host, origin, port):
+    """Whether a request may be served, from its Host and Origin headers.
+
+    Listening on 127.0.0.1 stops anything on the network reaching this server.
+    It does nothing about the browser already running on this machine: any page
+    you visit can post to http://127.0.0.1:7332/ in the background, and the
+    request arrives from the loopback address like any other.
+
+    That matters more here than it would for most local servers, because of
+    what this particular API can do. `/api/reset` wipes the mouse. Worse,
+    `/api/macro/save` and `/api/macro/flash` write a **keystroke macro into the
+    firmware** and bind it to a button - so a page you merely visited could
+    leave a mouse button that types whatever it chose, in any application,
+    surviving reboots and the removal of this software, because it lives in the
+    mouse rather than on the PC.
+
+    Two headers close it, and neither can be forged by a web page:
+
+    * **Origin.** The browser sets it on every cross-origin request and a
+      script cannot change or remove it. A request carrying an Origin that is
+      not this server is a page attacking us, so it is refused. A request with
+      no Origin at all is a program, not a page - curl, the CLI, a script - and
+      those are allowed through, because none of them is the attacker this is
+      defending against and refusing them would break scripting for no gain.
+
+    * **Host.** Without checking it, an attacker can point a name they own at
+      127.0.0.1 after the page loads - DNS rebinding - and from then on the
+      browser considers their page *same origin* with this server, so it sends
+      no Origin at all and can read every response. Requiring the Host to be a
+      loopback name means their domain never matches and the rebind is inert.
+    """
+    name = (host or "").strip()
+    if not name.endswith("]"):        # "[::1]" carries no port; "[::1]:7332" does
+        name = name.rsplit(":", 1)[0]
+    if name.lower() not in LOCAL_HOSTS:
+        return False
+    if origin:
+        allowed = {f"http://{h}:{port}" for h in ("127.0.0.1", "localhost")}
+        allowed.add(f"http://[::1]:{port}")
+        if origin not in allowed:
+            return False
+    return True
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "attackshark"
 
@@ -408,7 +459,18 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     # ----------------------------------------------------------- requests ---
+    def _guard(self):
+        """Refuse anything a page on another site sent us. See _request_allowed."""
+        if _request_allowed(self.headers.get("Host"),
+                            self.headers.get("Origin"),
+                            self.server.server_address[1]):
+            return True
+        self.send_error(403, "cross-origin request refused")
+        return False
+
     def do_GET(self):
+        if not self._guard():
+            return
         path = self.path.split("?", 1)[0]          # ?theme=... must still serve
         if path in ("/", "/index.html"):
             return self._send_file("index.html")
@@ -419,6 +481,8 @@ class Handler(BaseHTTPRequestHandler):
         return self._send_file(path)
 
     def do_POST(self):
+        if not self._guard():
+            return
         self.path = self.path.split("?", 1)[0]
         length = int(self.headers.get("Content-Length") or 0)
         try:

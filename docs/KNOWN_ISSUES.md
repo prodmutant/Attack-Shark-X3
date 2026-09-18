@@ -241,6 +241,11 @@ locally signed package will never win the ranking contest.
 
 ## 3. Smaller open items
 
+- **The interface trusts anything that can reach it with the right headers.**
+  `_request_allowed` refuses cross-origin requests and rebound Host names, which
+  is what stops a web page driving the API, but there is no authentication: any
+  *program* running as you can drive it, and a program running as you could talk
+  to the mouse directly anyway. See [`SECURITY.md`](../SECURITY.md).
 - **Two of sixty captured packets are not rebuilt by the test suite.** Both are
   chunks of an *empty* macro, which has no events to rebuild from. Not a defect,
   but the headline "58/60" should not be read as two unexplained failures.

@@ -255,6 +255,7 @@ docs/PROTOCOL.md   the wire specification
 docs/FINDINGS.md   what was found, what failed, what is still open
 docs/DRIVER.md     the driver: design, limits, install, recovery
 docs/KNOWN_ISSUES.md  what is wrong, what is unfinished, how to finish it
+SECURITY.md        threat model, and how to report something
 tests/             round-trip verification against the captures
 tools/             the RE toolkit (below)
 captures/          labelled HID traffic, the evidence behind the spec
