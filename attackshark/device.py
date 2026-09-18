@@ -48,6 +48,13 @@ class DeviceNotFound(Exception):
     pass
 
 
+def _last_index(items, level):
+    for i in range(len(items) - 1, -1, -1):
+        if items[i]["level_raw"] == level:
+            return i
+    return -1
+
+
 class AttackSharkX3:
     def __init__(self, state_path=DEFAULT_STATE):
         self.state_path = state_path
@@ -324,18 +331,28 @@ class AttackSharkX3:
         self.save()
 
     # ------------------------------------------------------------- status ---
-    def read_status(self, timeout=3.0):
-        """A usable status report from the 0x000A collection, or None.
+    def read_status(self, timeout=6.0, samples=5):
+        """A status report from the 0x000A collection, or None.
 
-        The mouse sometimes answers with a placeholder - `03 10 03 00 ff`,
-        which decodes to 0.19 V - and the first report off the collection is
-        not always a real measurement. Taking whatever arrived first meant the
-        interface would occasionally show 0 %, which looks exactly like a flat
-        battery and is the opposite of the truth.
+        The device is a noisy source and a single report cannot be trusted.
+        Two kinds of rubbish have been observed while running on the dongle,
+        with nothing plugged in and the level rock steady either side:
 
-        So: keep reading until a plausible one arrives or the budget runs out,
-        and return the last implausible one only if nothing better came, so the
-        caller can still see what the device actually said.
+          03 10 03 00 ff    decodes to 0.19 V - shown as 0 %, which looks
+                            exactly like a flat battery
+          03 10 50 00 0c    decodes to 5.00 V - the bus voltage, so it was
+                            shown as "charging" with no cable anywhere
+
+        The first is easy to reject because no lithium cell survives 0.19 V.
+        The second is not: 5 V is a perfectly legal reading, it just was not
+        true at the time. Validity checks cannot catch a value that is only
+        wrong in context.
+
+        So do what you do with any noisy sensor - sample it. Read several
+        reports and return the most common level, so one spurious frame cannot
+        move the display. Ties go to the most recent. Consecutive reports
+        arrive quickly once the collection is open, so this costs little more
+        than a single read.
         """
         found = []
         for pid in P.PRODUCT_IDS:
@@ -344,10 +361,12 @@ class AttackSharkX3:
             return None
 
         deadline = time.time() + timeout
-        last = None
+        tally = {}
+        order = []
+        other = None
         try:
             with HidInterface(found[0]) as iface:
-                while True:
+                while len(order) < samples:
                     left = deadline - time.time()
                     if left <= 0:
                         break
@@ -355,13 +374,24 @@ class AttackSharkX3:
                     if st is None:
                         break
                     if st.get("kind") != "battery":
-                        return st
-                    last = st
-                    if st.get("plausible"):
-                        return st
+                        other = st            # a kind we have not decoded
+                        continue
+                    if not st.get("plausible"):
+                        continue              # never a real measurement
+                    key = st["level_raw"]
+                    tally[key] = tally.get(key, 0) + 1
+                    order.append(st)
         except OSError:
-            return last
-        return last
+            pass
+
+        if not order:
+            return other
+        # most frequent level wins; among equals, the one seen last
+        best = max(tally.items(), key=lambda kv: (kv[1], -_last_index(order, kv[0])))
+        for st in reversed(order):
+            if st["level_raw"] == best[0]:
+                return dict(st, samples=len(order), agreed=best[1])
+        return order[-1]
 
     def battery(self, timeout=3.0):
         """Raw status level. Not a percentage - see protocol.parse_status."""

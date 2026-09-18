@@ -136,7 +136,8 @@ device instead, and the decode went through three wrong answers before landing:
    cable in. **No lithium cell reaches 5 V**; that is the USB bus. Anything
    above 4.35 V is now reported as *charging* rather than as a percentage.
 
-Then the actual bug. The mouse intermittently emits a **placeholder**:
+Then two faults that a decode cannot fix, because the device lies. It
+intermittently emits a **placeholder**:
 
 ```
 03 10 03 00 ff        ->  0.19 V, trailing byte 0xFF
@@ -148,12 +149,32 @@ of the truth. `read_status()` now keeps reading until a plausible report
 arrives; a cell that had genuinely reached 0.19 V would be destroyed, so
 anything that low is the device saying "nothing to report".
 
+It also emits a spurious **`03 10 50 00 0c`** — 5.00 V, the bus voltage — while
+running on the dongle with nothing plugged in. That one cannot be rejected by a
+validity check, because 5 V is a perfectly legal reading; it simply was not
+true at that moment, and a single frame was enough to flip the display to
+"charging". The fix is what you do with any noisy sensor: `read_status()` takes
+several reports and returns the most common level, so one bad frame cannot move
+the display.
+
 **Known limitation, and it is the hardware's:** the voltage arrives in
 sixteenths of a volt, so between an empty cell (3.30 V) and a full one
 (4.20 V) there are only about **fifteen values the device can ever send**. The
 percentage moves in roughly 5-point steps and then sits still for hours. That
 is resolution, not a stalled reading, and the interface shows the measured
 voltage beside the percentage so it is visible rather than mysterious.
+
+**The third fault was not the decode at all.** The mouse stops sending status
+reports once it sleeps: with the profile's sleep timer at 0.5 min, 9 read
+attempts over 25 seconds returned nothing while it sat idle, and every earlier
+successful read had happened while it was awake. That is why the reading seemed
+to work sometimes and not others. Writing to the config channel does not wake
+it — the dongle accepts the packet, the mouse stays asleep — so there is no way
+to force a reading; the device has to be moved.
+
+The interface therefore keeps the last known reading with its age, dims it past
+three minutes, and the tooltip names the sleep setting responsible rather than
+leaving an old number looking like a stuck one.
 
 The status collection's input report is 5 bytes and all five are read — there
 is no finer figure hiding in it, and no other collection carries one.

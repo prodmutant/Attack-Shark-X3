@@ -106,13 +106,23 @@ function renderBattery(b) {
   }
   const age = b.age == null ? null : Math.round(b.age);
   const seen = age == null ? '' : `, read ${age < 90 ? age + 's' : Math.round(age / 60) + 'm'} ago`;
+  /* The mouse stops reporting status once it sleeps, so an old reading
+     usually means an idle mouse rather than a fault - and with a short sleep
+     timer that is most of the time. Say so, and say which setting causes it. */
+  const naps = (S && S.state && S.state.sleep_min) || null;
+  const why = b.stale && naps
+    ? `
+The mouse stops reporting once it sleeps, which your profile sets to `
+      + `${naps < 1 ? naps * 60 + ' seconds' : naps + ' minutes'} idle. Move it, `
+      + `or raise Sleep under Power & response.`
+    : '';
 
   if (b.charging) {
     /* the device is reporting the 5 V bus, not the cell, so there is no state
        of charge to show - say charging rather than invent a number */
     set('batt charging', '100%', 'chg', b.volts.toFixed(2) + ' V',
         `${b.volts.toFixed(2)} V on the bus - the cable is in, so the cell `
-        + `level is not being reported${seen}`);
+        + `level is not being reported${seen}` + why);
     return;
   }
   if (typeof b.percent !== 'number') {
@@ -131,7 +141,7 @@ function renderBattery(b) {
 `
       + `The percentage is derived from a Li-ion curve; the device reports `
       + `1/16 V steps, so it moves about ${b.percent_step || 5} points at a `
-      + `time and will sit still in between.`);
+      + `time and will sit still in between.` + why);
 }
 
 function renderButtons(snap) {
