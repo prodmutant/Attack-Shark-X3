@@ -427,6 +427,25 @@ def _request_allowed(host, origin, port):
     return True
 
 
+def _custom(path):
+    """Your own artwork instead of the shipped artwork, if you have put any there.
+
+    `logo.custom.png` beside `logo.png` wins, and the same for the backdrop.
+    The shipped mark and watermark are drawn from the traced outline by
+    `tools/make_mark.py` and are deliberately plain, because they have to be
+    something this project can license to everyone; that is a poor reason to
+    stop anyone making their copy look how they want.
+
+    Doing it here rather than in the page means nothing else has to know: the
+    markup still asks for logo.png and the stylesheet still asks for
+    backdrop.png. `.gitignore` covers `*.custom.*`, so a local face never
+    becomes a commit.
+    """
+    stem, ext = os.path.splitext(path)
+    mine = stem + ".custom" + ext
+    return mine if os.path.isfile(mine) else path
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "attackshark"
 
@@ -448,6 +467,7 @@ class Handler(BaseHTTPRequestHandler):
         if not path.startswith(WEB_ROOT) or not os.path.isfile(path):
             self.send_error(404)
             return
+        path = _custom(path)
         ctype = mimetypes.guess_type(path)[0] or "application/octet-stream"
         with open(path, "rb") as fh:
             body = fh.read()

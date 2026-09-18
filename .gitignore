@@ -11,3 +11,6 @@ build/
 # use to anyone downloading it. Build your own: python tools/build_driver.py
 driver/build/
 driver/out/
+
+# your own logo/backdrop, kept out of the repo
+attackshark/web/*.custom.*

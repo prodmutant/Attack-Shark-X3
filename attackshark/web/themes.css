@@ -144,7 +144,8 @@ body::after{
     rgba(var(--scrim),.82) 46%,
     rgba(var(--scrim),.55) 100%);
 }
-/* light themes drop the photo and the scrim entirely */
+/* light themes drop the artwork and the scrim entirely - the drawing is
+   bone white, which is invisible on them */
 [data-theme="paper"] body::before, [data-theme="sakura"] body::before,
 [data-theme="citrine"] body::before,
 [data-theme="paper"] body::after, [data-theme="sakura"] body::after,
