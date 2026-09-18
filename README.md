@@ -30,12 +30,6 @@ window with no browser chrome, its own icon and taskbar entry, that renders the
 interface with Edge's engine. Identical by construction, with nothing to keep
 in sync.
 
-An earlier attempt drew the whole interface again in Tkinter. It was the wrong
-call and it is gone: Tk has no letter-spacing, no gradients, no anti-aliased
-shapes and no control over font weight, so it could not look like this design,
-only near it. Two front ends that merely resemble each other is worse than one
-rendered twice.
-
 The window starts its own driver service on a port chosen at runtime and takes
 it down on exit, so it never collides with a web UI you already have open, and
 there is nothing left listening afterwards. Building it needs the .NET SDK and
@@ -47,30 +41,67 @@ dotnet build desktop/X3Driver/X3Driver.csproj -c Release
 
 ## The interface
 
-`attackshark gui` serves a local page on `127.0.0.1:7332` and opens it. Click a
-button on the mouse diagram (or in the list) to reassign it; every other control
-writes to the mouse as you release it. The **Wire packets** section at the bottom
-shows the exact bytes each change produces, which is handy when extending the
-protocol.
+Three pages, from the nav in the header:
+
+| | |
+|---|---|
+| **Dashboard** | DPI stages, polling rate, sensor toggles, power timers, profile |
+| **Macros** | the macro list, the host engine, and the per-button bindings |
+| **Themes** | six palettes and the particle layer |
+
+The mouse stays on the left on every page and does three jobs from one drawing:
+it is the way into a button on the dashboard, the binding target on the macros
+page, and a live preview on the themes page. Click a button on it, or the same
+row in the list beside it, to reassign it. Every other control writes to the
+mouse as you release it.
 
 Keyboard shortcuts are captured by pressing them: open a button, switch to the
 *Keyboard shortcut* tab, and press the combination you want.
+
+The page is also the window frame in the desktop build - the header is the drag
+region and carries the caption buttons. In a browser none of that turns on.
+
+### The mouse drawing
+
+Not drawn by hand. `tools/trace_outline.py` traces the outline in
+`captures/ref/mouse_outline.png` and emits the path, so the shell is the
+device's real silhouette rather than an ellipse: aspect 0.52, a waist at the
+midpoint, and the widest point low in the palm at about 70%.
+
+```
+python tools/trace_outline.py captures/ref/mouse_outline.png --points 22
+```
+
+Two things the tracer has to get right, both of which look like the shape being
+wrong rather than the method being wrong:
+
+* **Sample by arc length, not by row.** Rows starve the nose and tail, where
+  the outline runs nearly horizontal, and the curve kinks there.
+* **Mirror the right flank.** The side buttons sit on the left only, so that
+  edge carries their tabs; filtering them out needs a window so wide it
+  chamfers the nose and tail into a rounded rectangle. The right flank is clean
+  to begin with, and mirroring it about an axis measured in the tab-free
+  quarters removes the tabs exactly, with no smoothing. Measured against a
+  de-tabbed left flank the two agree to within 4 units through the body and
+  differ by 60+ at the caps, which is the filtering damage made visible.
 
 ### Artwork
 
 Both the header mark and the backdrop are whatever images you drop in:
 
 ```
-python tools/make_logo.py IMAGE --circle               # header mark
-python tools/make_logo.py IMAGE --box 160,140,380,380  # exact source crop
-python tools/make_backdrop.py IMAGE --anchor top       # right-hand backdrop
+python tools/make_logo.py IMAGE --circle --fit --ring 3d9e60
+python tools/make_logo.py IMAGE --box 160,140,380,380     # exact source crop
+python tools/make_backdrop.py IMAGE --anchor top          # right-hand backdrop
 ```
 
-`make_logo` centre-crops to a square (or an exact `--box`) so nothing is
-squashed, resizes to 256x256, and `--circle` masks it to a disc and rounds the
-frame. `make_backdrop` cover-fits the image, dims it, and bakes a left-to-right
-alpha ramp so it melts into the page rather than sitting on it as a rectangle -
-tune with `--fade` and `--dim`. Both need Pillow; nothing else does.
+`--fit` is the one that matters for a mark: crop-to-fill puts the corners of the
+square exactly where a face keeps its horns and jaw, and the disc then cuts them
+off. `--fit` scales the whole image inside the disc instead, and `--ring` draws
+the edge that stops a dark mark dissolving into a dark header. `make_backdrop`
+cover-fits an image, dims it, and bakes a left-to-right alpha ramp so it melts
+into the page rather than sitting on it as a rectangle. Both need Pillow;
+nothing else does.
 
 ## Macros: on the mouse, or on the host
 
@@ -183,6 +214,9 @@ Secure Boot off and test signing on. Everything else works without it.
 pip install .            # or: python -m build && pip install dist/*.whl
 ```
 
+The web assets are declared as package data, so an installed copy serves the
+same interface as a source checkout.
+
 ### Adding a feature
 
 The front end builds its controls from the catalog the server sends, so a new
@@ -217,6 +251,7 @@ attackshark/
   cli.py           command line front end
   server.py        stdlib HTTP server + JSON API for the web UI
   web/             the interface (index.html, style.css, app.js, logo.png)
+desktop/X3Driver/  the WebView2 window that hosts that interface (C#)
 driver/asxfilter/  the KMDF mouse filter driver (C, INF, shared header)
 docs/PROTOCOL.md   the wire specification
 docs/DRIVER.md     the driver: design, limits, install, recovery
@@ -252,6 +287,11 @@ mouse in this OEM family.
 | `tools/make_backdrop.py` | turn an image into the faded right-hand backdrop |
 | `tools/read_inputs.py` | listen on every collection for input reports |
 | `tools/watch_status.py` | timestamp status reports; test what triggers them |
+| `tools/battery_probe.py` | watch the status report and print only the changes - plug the cable in and out to see which byte moves |
+| `tools/battery_log.py` | log the status byte across a charge cycle into `captures/battery.csv` |
+| `tools/probe_status.py`, `tools/hid_probe.py` | poke the status and config collections |
+| `tools/latency.py` | measure click-to-report latency |
+| `tools/trace_outline.py` | trace a reference drawing into the mouse-map SVG path |
 
 The method that made this tractable: rather than read disassembly, drive one
 setting at a time from the vendor UI while logging `HidD_SetFeature`, then diff.

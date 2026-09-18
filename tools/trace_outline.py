@@ -174,36 +174,13 @@ def trace(mask, span, points, box_w, box_h, pad, smooth, mirror, soften=5):
     return catmull_rom(ring), (src_w, src_h, src_w / src_h)
 
 
-def trace_points(mask, span, points, box_w, box_h, pad, smooth, mirror, soften=5):
-    """The same geometry as trace(), returned as points rather than a path.
-
-    The desktop app draws a polygon on a Tk canvas and the web UI draws a
-    bezier; both come from here, so the two cannot drift apart.
-    """
-    sub = mask[:, span[0]:span[1]]
-    left, right, _, _ = edges(sub, smooth, soften)
-    h = len(left)
-    if mirror:
-        q = max(1, h // 4)
-        ends = np.concatenate([(left[:q] + right[:q]) / 2.0,
-                               (left[-q:] + right[-q:]) / 2.0])
-        centre = float(np.median(ends))
-        right = np.maximum(right, centre)
-        left = 2.0 * centre - right
-    src_w = float(right.max() - left.min())
-    scale = min((box_w - 2 * pad) / src_w, (box_h - 2 * pad) / h)
-    ox = (box_w - src_w * scale) / 2.0 - left.min() * scale
-    oy = (box_h - h * scale) / 2.0
-    dense = [(right[i] * scale + ox, i * scale + oy) for i in range(h)]
-    dense += [(left[i] * scale + ox, i * scale + oy) for i in range(h - 1, -1, -1)]
-    return resample(dense, points)
-
-
 def resample(poly, count):
     """Evenly spaced points around a closed polygon, by arc length.
 
     Spacing by distance rather than by row is what keeps the curvature honest
     at the caps: they get as many samples per millimetre as the flanks do.
+    Sampling per row starves the nose and tail, where the outline runs nearly
+    horizontal, and the curve kinks there.
     """
     pts = list(poly)
     if pts[0] != pts[-1]:
@@ -249,9 +226,6 @@ def main():
                     help="moving-average window after the median (0 disables)")
     ap.add_argument("--no-mirror", action="store_true",
                     help="keep the drawing's own asymmetry")
-    ap.add_argument("--emit-python", metavar="PATH",
-                    help="also write the outline as a Python point list, so "
-                         "the desktop app draws the same shape as the web UI")
     ap.add_argument("--side", action="store_true",
                     help="trace the second drawing (side view) as well")
     args = ap.parse_args()
@@ -272,22 +246,6 @@ def main():
         print(f"--- {label}: {w:.0f} x {h:.0f} source px, aspect {ratio:.3f} ---")
         print(d)
         print()
-
-        if n == 0 and args.emit_python:
-            pts = trace_points(mask, span, 150, args.width, args.height,
-                               args.pad, args.smooth, not args.no_mirror,
-                               args.soften)
-            body = ",\n".join("    ({:.2f}, {:.2f})".format(*q) for q in pts)
-            doc = "".join(['"""Mouse shell outline, generated - do not edit by hand.\n', '\n', 'Produced by tools/trace_outline.py from the reference drawing in\n', 'captures/ref/. The web UI draws it as a bezier path and the desktop app\n', 'as a polygon, both from this one trace, so the two cannot drift apart.\n', '\n', '    python tools/trace_outline.py captures/ref/mouse_outline.png\n', '        --emit-python attackshark/shell_outline.py\n', '"""\n', '\n'])
-            src = (doc
-                   + "#: viewBox the points are expressed in\n"
-                   + "BOX = ({}, {})\n\n".format(args.width, args.height)
-                   + "#: closed outline, clockwise from the nose\n"
-                   + "OUTLINE = [\n" + body + ",\n]\n")
-            with open(args.emit_python, "w", encoding="utf-8", newline="\n") as fh:
-                fh.write(src)
-            print("wrote {} points to {}".format(len(pts), args.emit_python))
-            print()
 
     return 0
 

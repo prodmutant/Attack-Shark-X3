@@ -28,3 +28,8 @@ attackshark = "attackshark.cli:main"
 
 [tool.setuptools]
 packages = ["attackshark"]
+
+# The web interface is data, not code, so it needs listing explicitly or a
+# `pip install .` produces a package whose `gui` command serves nothing.
+[tool.setuptools.package-data]
+attackshark = ["web/*"]

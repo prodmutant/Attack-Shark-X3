@@ -1,0 +1,30 @@
+# Normalise line endings in the repository, so a checkout on Windows and one on
+# Linux produce the same blobs. Without this the C#, C and PowerShell files
+# churn between CRLF and LF every time they are touched on a different machine.
+* text=auto
+
+# Sources that must keep LF even on Windows: the INF and the shell scripts are
+# read by tools that do not care, but consistency here keeps diffs quiet.
+*.py    text eol=lf
+*.js    text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.c     text eol=lf
+*.h     text eol=lf
+*.cs    text eol=lf
+*.csproj text eol=lf
+*.ps1   text eol=lf
+*.inf   text eol=lf
+*.toml  text eol=lf
+
+# Never touched
+*.png   binary
+*.ico   binary
+*.jpg   binary
+*.ttf   binary
+*.sys   binary
+*.cat   binary
+*.cer   binary
+*.jsonl binary
