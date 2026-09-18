@@ -10,6 +10,7 @@ into the mouse's own firmware, ships an optional ~1150-line kernel filter driver
 for host-side movement, and documents the wire protocol so anyone can port it.
 
 ```
+attackshark app                      # desktop application
 attackshark gui                      # local web interface
 attackshark info
 attackshark polling 500
@@ -19,6 +20,26 @@ attackshark flags --lod 1 --motion-sync on
 attackshark power --sleep 0.5 --deep-sleep 10 --key-response 4
 attackshark driver                   # filter driver status
 ```
+
+## Two front ends
+
+`attackshark app` opens a desktop window; `attackshark gui` serves the same
+thing as a local page. They are not a wrapper around each other - the desktop
+app talks to the device through the same `server.apply_patch`, so both share one
+write path and one set of rules about what gets pushed when, but the window
+needs no HTTP, no port and nothing left running.
+
+The desktop build is Tkinter, because nothing else in this project needs a
+third-party package and the desktop version is a poor place to start. `ttk` is
+avoided deliberately: its platform themes fight custom colours on Windows, so
+every control is drawn from flat `tk` widgets and `attackshark/theme.py` is the
+only thing deciding how it looks. That file is the same token set as
+`web/themes.css`.
+
+Both draw the mouse from `attackshark/shell_outline.py`, which
+`tools/trace_outline.py` generated from the reference drawing - the web UI
+renders it as a bezier path, the desktop app as a canvas polygon, from one
+trace. They cannot disagree about the shape of the hardware.
 
 ## The interface
 

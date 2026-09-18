@@ -10,6 +10,7 @@
     python -m attackshark apply
     python -m attackshark packets
     python -m attackshark gui
+    python -m attackshark app
     python -m attackshark driver
 """
 from __future__ import annotations
@@ -143,6 +144,12 @@ def cmd_packets(dev, args):
     return 0
 
 
+def cmd_app(dev, args):
+    """The desktop application - a window, not a browser."""
+    from .native import main as app_main
+    return app_main()
+
+
 def cmd_driver(_mouse, args):
     """Report on the filter driver, and optionally move through it."""
     from . import kdriver, motion
@@ -245,6 +252,9 @@ def build_parser():
     p.add_argument("--port", type=int, default=7332)
     p.add_argument("--no-browser", action="store_true")
     p.set_defaults(fn=cmd_gui, needs_device=False)
+
+    sub.add_parser("app", help="open the desktop application").set_defaults(
+        fn=cmd_app, needs_device=False)
 
     p = sub.add_parser("driver", help="filter driver status (real mouse movement)")
     p.add_argument("--move", nargs=2, type=int, metavar=("DX", "DY"),
