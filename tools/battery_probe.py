@@ -1,9 +1,11 @@
 """Watch the status report live and print every change.
 
-What is known: byte 2 is a voltage in 1/16 V. 0x40 = 4.00 V on the dongle, and
-the vendor app showed 90 % at that same reading, which is where 4.00 V sits on
-a 1S Li-ion curve. 0x50 = 5.00 V appeared while the cable was in - no Li-ion
-cell reaches 5 V, so that is the bus, not the cell.
+What is assumed: byte 2 is a voltage in 1/16 V, so 0x40 = 4.00 V on the dongle.
+That rests on the byte barely moving, which is what a voltage does and a
+percentage does not - it is not confirmed, and the vendor app corroborates
+nothing (it shows a flat 100 % in every screenshot). 0x50 appeared while the
+cable was in; under the voltage reading that is 5.00 V, and no Li-ion cell
+reaches 5 V, so it is the bus rather than the cell.
 
 What is not known: bytes 3 and 4. Two samples suggest byte 3 is a charge bit
 (1 on the dongle, 0 on the cable) but one bit of evidence is not a finding,

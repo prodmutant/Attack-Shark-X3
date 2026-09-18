@@ -127,17 +127,26 @@ without needing to see what it does.
 
 ## 5. Battery
 
-The vendor app shows a figure that does not track. This project reads the
-device instead, and the decode went through three wrong answers before landing:
+The vendor app shows a figure that does not track — it reads a flat `100 %` in
+every capture screenshot that shows its Power panel, and its meter looks like a
+static gradient image rather than a rendered level. This project reads the
+device instead. The decode landed here:
 
-1. *"Byte 2 is a percentage."* It reads `0x40` = 64 while the vendor displays
-   90 %. Wrong.
-2. *"Byte 2 is a voltage in 1/16 V."* `0x40`/16 = **4.00 V**, and the vendor
-   showed 90 % at that same reading — which is where 4.00 V sits on a 1S
-   Li-ion curve. Corroborated by an independent source, so: right.
+1. *"Byte 2 is a voltage in 1/16 V."* `0x40`/16 = **4.00 V**, a sensible
+   resting voltage for a 1S cell. The argument is behavioural: the byte barely
+   moves, which is what a voltage does and a percentage does not.
+2. *"Byte 2 is a percentage."* Then `0x40` is 64 %. **This has not been ruled
+   out.** It is less consistent with how little the byte moves, and that is the
+   only thing against it. An earlier version of this section claimed the vendor
+   app had been seen at 90 %, which would have decided it in favour of (1); no
+   screenshot supports that and the claim has been withdrawn. One full
+   discharge log settles this — see
+   [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) §1.
 3. *"Then 5.00 V means a very full battery."* No — `0x50` appeared with the
    cable in. **No lithium cell reaches 5 V**; that is the USB bus. Anything
    above 4.35 V is now reported as *charging* rather than as a percentage.
+   (Under reading (2) that same byte would be an unremarkable 80 %, which is
+   another way of seeing what rests on the choice.)
 
 Then two faults that a decode cannot fix, because the device lies. It
 intermittently emits a **placeholder**:

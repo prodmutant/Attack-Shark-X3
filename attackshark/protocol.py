@@ -377,12 +377,14 @@ def parse_buttons(buf: bytes) -> dict:
 
 #: Open-circuit voltage -> state of charge for a single Li-ion cell.
 #:
-#: The mouse reports a voltage, not a percentage, so a curve is the only way to
-#: get a usable figure. This one is anchored on a measurement rather than
-#: invented: the device read 0x40 = 4.00 V while the vendor app displayed 90 %,
-#: which is exactly where 4.00 V sits on a standard 1S discharge curve. The
-#: rest of the points are that curve; they are an approximation, and
-#: `percent_verified` stays False to say so.
+#: The mouse is read as reporting a voltage, not a percentage, so a curve is
+#: the only way to get a usable figure. This is a **textbook** 1S discharge
+#: curve, not one measured from this cell, and it is not anchored on anything:
+#: an earlier version of this note claimed the vendor app had been seen at 90 %
+#: against 0x40, which would have anchored it, but no screenshot supports that
+#: and the claim has been withdrawn. Every point here is an approximation and
+#: `percent_verified` stays False to say so. `tools/battery_log.py` across one
+#: full discharge would replace the whole thing with measured points.
 #: Above this the reading cannot be the cell; it is the 5 V bus.
 CELL_MAX_V = 4.35
 
@@ -430,12 +432,24 @@ def parse_status(buf):
 
     Observed: ``03 10 40 01 09`` - report id, kind, then three bytes.
 
-    Byte 2 is a **voltage in 1/16 V**, not a percentage. It reads 0x40 and
-    barely moves, which is what a cell voltage does and a percentage does not.
-    0x40 / 16 = 4.00 V, and the vendor app showed 90 % at that same reading -
-    exactly where 4.00 V falls on a 1S Li-ion curve. So the voltage reading is
-    corroborated by an independent source, and `percent` is derived from it
-    through LIION_CURVE.
+    Byte 2 is read as a **voltage in 1/16 V**, not a percentage, and `percent`
+    is derived from it through LIION_CURVE. Be clear about how thin that is.
+
+    The argument for voltage is behavioural: the byte reads 0x40 and barely
+    moves, which is what a cell voltage does and a raw percentage does not.
+    0x40 / 16 = 4.00 V, which is a sensible resting voltage for a 1S cell.
+
+    There is no corroboration from the vendor software, and an earlier version
+    of this comment wrongly claimed there was. The vendor app reads **100 %**
+    in every capture screenshot that shows its Power panel, against the same
+    0x40 - and the widget appears to be a static gradient image rather than a
+    rendered level, which fits the widely reported complaint that its battery
+    display does not track. 100 % matches neither 4.00 V on the curve (~90 %)
+    nor a raw 0x40 (64 %), so it corroborates nothing either way.
+
+    The competing reading - that the byte is simply a percentage, so 0x40 is
+    64 % - has not been ruled out by measurement. See docs/KNOWN_ISSUES.md §1
+    for the one discharge test that settles it.
 
     The percentage is therefore an approximation of the cell's state of charge,
     not a figure the device sent; `percent_verified` is False to say so.

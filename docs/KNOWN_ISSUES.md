@@ -48,16 +48,22 @@ where the voltage is exactly right, the percentage it maps to can be off by
 several points, and most of that error lands in the middle of the range where
 the curve is flattest.
 
-**c. The meaning of byte 2 rests on one uncontrolled observation, and the
-record contradicts itself.** The byte reads `0x40`. If it is a voltage in
-sixteenths, that is 4.00 V, which maps to about 90 %. If it is a raw
-percentage, it is 64 %. Both are plausible on their face. The decode chose
-voltage because the vendor application was observed showing ~90 % at that same
-reading — but elsewhere in this project's own notes the vendor app is recorded
-as showing a static 100 % against the same `0x40`. **Those two observations
-cannot both be right**, neither was taken under controlled conditions, and this
-is the single weakest link in the whole battery decode. Everything downstream
-of it inherits that uncertainty.
+**c. Nothing has actually confirmed what byte 2 means.** The byte reads
+`0x40`. If it is a voltage in sixteenths, that is 4.00 V, which maps to about
+90 %. If it is a raw percentage, it is 64 %. Both are plausible on their face,
+and the decode chose voltage on a purely behavioural argument: the byte barely
+moves, which is what a cell voltage does and a percentage does not.
+
+That argument is not nothing, but it is all there is. **The vendor software
+does not corroborate it.** Its Power panel reads a flat `100 %` in every
+capture screenshot that shows it, against the same `0x40`, and the meter
+appears to be a static gradient image rather than a rendered level — 100 %
+matches neither 4.00 V on the curve nor a raw `0x40`, so it is evidence only
+that the vendor display does not track the device. An earlier version of this
+project's notes claimed the vendor app had been seen at ~90 %, which would have
+corroborated the voltage reading; no screenshot supports it and the claim has
+been withdrawn. This is the single weakest link in the whole battery decode and
+everything downstream of it inherits the uncertainty.
 
 **d. The device emits frames that are not measurements.** Two kinds have been
 seen with the level rock steady either side:

@@ -76,19 +76,24 @@ There is no `HidD_GetInputReport` or feature report here — the level can only 
 opened, so open / read-one / close behaves like an on-demand read.
 
 **Byte 2 is read as a voltage in sixteenths of a volt**, so `0x40` is 4.00 V,
-and the percentage is derived from that through a lithium discharge curve. The
-alternative reading - that the byte is a raw percentage, so `0x40` is 64 % - was
-rejected because the vendor application was observed showing roughly 90 % at
-that same value, which is where 4.00 V falls on the curve.
+and the percentage is derived from that through a lithium discharge curve.
 
-Be aware that this rests on one uncontrolled observation, and that this
-project's own notes elsewhere record the vendor app showing a static 100 %
-against the same byte. Those cannot both be right. It is the weakest link in
-the battery decode and everything downstream inherits the uncertainty -
-`docs/KNOWN_ISSUES.md` §1 sets out the single experiment that settles it.
+The reason is behavioural, and it is worth being honest about how thin it is:
+the byte reads `0x40` and barely moves, which is what a cell voltage does and a
+raw percentage does not. That is the whole argument. The competing reading -
+that the byte is simply a percentage, so `0x40` is 64 % - has **not** been ruled
+out by measurement.
 
-Either way the vendor display does not track the device, which matches the
-widely reported complaint about it. This driver reads the device directly.
+The vendor software settles nothing. It reads a flat **100 %** in every capture
+screenshot that shows its Power panel, against the same `0x40`, and its meter
+looks like a static gradient image rather than a rendered level. 100 % matches
+neither 4.00 V on the curve (~90 %) nor a raw `0x40` (64 %). It is consistent
+only with the widely reported complaint that the vendor display does not track
+the device at all.
+
+This is the weakest link in the battery decode and everything downstream
+inherits the uncertainty. [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) §1 sets out the
+single discharge test that settles it. This driver reads the device directly.
 
 ---
 
