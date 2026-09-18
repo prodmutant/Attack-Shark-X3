@@ -7,10 +7,12 @@ file is the source of truth. `attackshark.json` next to your profile keeps it.
 """
 from __future__ import annotations
 
+import copy
 import json
 import os
 import time
 import traceback
+from contextlib import contextmanager
 
 from . import protocol as P
 from .hid_backend import HidInterface, find_interfaces
@@ -50,6 +52,9 @@ class AttackSharkX3:
     def __init__(self, state_path=DEFAULT_STATE):
         self.state_path = state_path
         self.state = self._load_state()
+        # what was on disk when we loaded, so save() can tell which keys this
+        # instance actually changed and leave the rest alone
+        self._baseline = copy.deepcopy(self.state)
         self._iface = None
         self._info = None
 
@@ -67,15 +72,100 @@ class AttackSharkX3:
                 pass          # a corrupt state file must not brick the CLI
         return st
 
+    @contextmanager
+    def _state_lock(self, timeout=8.0):
+        """Exclusive across processes, on a sidecar file.
+
+        The lock cannot live on the state file itself: saving replaces that
+        file, and a lock held on the old inode would protect nothing.
+
+        If the lock cannot be taken within the timeout the write goes ahead
+        anyway. A stuck lock must not leave someone unable to configure their
+        mouse; losing an edit is better than refusing to work at all.
+        """
+        path = self.state_path + ".lock"
+        d = os.path.dirname(path)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        fh = open(path, "a+b")
+        locked = False
+        try:
+            if fh.seek(0, os.SEEK_END) == 0:
+                fh.write(b".")          # a byte to lock
+                fh.flush()
+            deadline = time.time() + timeout
+            while True:
+                try:
+                    fh.seek(0)
+                    if os.name == "nt":
+                        import msvcrt
+                        msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+                    else:
+                        import fcntl
+                        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    locked = True
+                    break
+                except OSError:
+                    if time.time() >= deadline:
+                        break
+                    time.sleep(0.04)
+            yield locked
+        finally:
+            if locked:
+                try:
+                    fh.seek(0)
+                    if os.name == "nt":
+                        import msvcrt
+                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                    else:
+                        import fcntl
+                        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                except OSError:
+                    pass
+            fh.close()
+
     def save(self):
+        """Merge this instance's changes into whatever is on disk now.
+
+        Several things write here - the web UI, the desktop app's service, the
+        CLI, the RE tools - and each one loads the whole document, edits part
+        of it and writes it back. Writing `self.state` wholesale means the last
+        writer wins for *every* key, not just the ones it touched, so a tool
+        that only changed a button map would silently delete macros saved by
+        the UI a second earlier. That is not hypothetical; it happened.
+
+        So: under the lock, re-read the file, apply only the keys that differ
+        from the baseline this instance loaded, and write that. Two writers
+        editing different settings both keep their work. Two writers editing
+        the same setting still resolve last-write-wins, which is the best
+        anyone can do without asking the user.
+        """
         d = os.path.dirname(self.state_path)
         if d:
             os.makedirs(d, exist_ok=True)
-        # write through a temp file: a kill mid-write must not shred the state
-        tmp = self.state_path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(self.state, fh, indent=2)
-        os.replace(tmp, self.state_path)
+
+        with self._state_lock():
+            merged = self._load_state()          # whatever is there right now
+            missing = object()
+            for key, value in self.state.items():
+                if value != self._baseline.get(key, missing):
+                    merged[key] = value
+            for key in self._baseline:
+                if key not in self.state and key in merged:
+                    del merged[key]              # this instance removed it
+
+            merged["colors"] = [tuple(c) for c in merged["colors"]]
+
+            # write through a temp file: a kill mid-write must not shred it
+            tmp = self.state_path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(merged, fh, indent=2)
+            os.replace(tmp, self.state_path)
+
+        # carry on from the merged document, so this instance now sees the
+        # other writers' changes too
+        self.state = merged
+        self._baseline = copy.deepcopy(merged)
         self._audit()
 
     def _audit(self):
