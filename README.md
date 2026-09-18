@@ -21,25 +21,29 @@ attackshark power --sleep 0.5 --deep-sleep 10 --key-response 4
 attackshark driver                   # filter driver status
 ```
 
-## Two front ends
+## Two front ends, one interface
 
 `attackshark app` opens a desktop window; `attackshark gui` serves the same
-thing as a local page. They are not a wrapper around each other - the desktop
-app talks to the device through the same `server.apply_patch`, so both share one
-write path and one set of rules about what gets pushed when, but the window
-needs no HTTP, no port and nothing left running.
+thing at `127.0.0.1:7332`. They are not two builds of the same design - they
+are the *same* front end. `desktop/X3Driver` is a WebView2 host: a WinForms
+window with no browser chrome, its own icon and taskbar entry, that renders the
+interface with Edge's engine. Identical by construction, with nothing to keep
+in sync.
 
-The desktop build is Tkinter, because nothing else in this project needs a
-third-party package and the desktop version is a poor place to start. `ttk` is
-avoided deliberately: its platform themes fight custom colours on Windows, so
-every control is drawn from flat `tk` widgets and `attackshark/theme.py` is the
-only thing deciding how it looks. That file is the same token set as
-`web/themes.css`.
+An earlier attempt drew the whole interface again in Tkinter. It was the wrong
+call and it is gone: Tk has no letter-spacing, no gradients, no anti-aliased
+shapes and no control over font weight, so it could not look like this design,
+only near it. Two front ends that merely resemble each other is worse than one
+rendered twice.
 
-Both draw the mouse from `attackshark/shell_outline.py`, which
-`tools/trace_outline.py` generated from the reference drawing - the web UI
-renders it as a bezier path, the desktop app as a canvas polygon, from one
-trace. They cannot disagree about the shape of the hardware.
+The window starts its own driver service on a port chosen at runtime and takes
+it down on exit, so it never collides with a web UI you already have open, and
+there is nothing left listening afterwards. Building it needs the .NET SDK and
+the Edge WebView2 runtime:
+
+```
+dotnet build desktop/X3Driver/X3Driver.csproj -c Release
+```
 
 ## The interface
 

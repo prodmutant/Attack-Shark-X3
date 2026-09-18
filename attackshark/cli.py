@@ -145,9 +145,28 @@ def cmd_packets(dev, args):
 
 
 def cmd_app(dev, args):
-    """The desktop application - a window, not a browser."""
-    from .native import main as app_main
-    return app_main()
+    """Launch the desktop application.
+
+    The window is a WebView2 host in desktop/X3Driver: it renders the same
+    interface the web UI serves, with the same engine, so there is one front
+    end shown two ways rather than two that drift apart. It starts its own
+    driver service on a private port and takes it down again on exit.
+    """
+    import subprocess
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    exe = root / "desktop" / "X3Driver" / "bin" / "Release" / "net10.0-windows" \
+        / "PRODMUTANT X3 Driver.exe"
+    if not exe.exists():
+        print("the desktop application has not been built yet:")
+        print(f"  dotnet build {root / 'desktop' / 'X3Driver' / 'X3Driver.csproj'} -c Release")
+        print("\nit needs the .NET SDK and the Edge WebView2 runtime.")
+        print("until then, `attackshark gui` serves the same interface.")
+        return 1
+    subprocess.Popen([str(exe)], cwd=str(exe.parent))
+    print(f"launched {exe.name}")
+    return 0
 
 
 def cmd_driver(_mouse, args):
