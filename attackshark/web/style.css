@@ -49,13 +49,12 @@ button,input,select{font:inherit;color:inherit}
 }
 .brand{display:flex;align-items:center;gap:14px;min-width:0}
 .logo{
-  /* The art runs edge to edge on its own canvas, so a round frame clips its
-     corners - the mask loses its horns and jaw. Padding shrinks the picture
-     inside a frame that stays the same size, which shows more of the mark
-     rather than more of the crop. `contain` then keeps it un-squashed. */
-  width:74px;height:74px;box-sizing:border-box;padding:9px;
-  object-fit:contain;object-position:center;
-  display:block;border:1px solid var(--line2);background:#000;
+  /* The asset carries its own margin and ring - tools/make_logo.py --fit
+     scales the whole mark inside the disc rather than cropping it to fill, so
+     nothing needs shrinking here. No CSS border either: a square frame around
+     a disc leaves four visible corners. */
+  width:74px;height:74px;object-fit:contain;object-position:center;
+  display:block;background:transparent;
 }
 .brand{overflow:hidden}
 .logo.round{border-radius:50%}
