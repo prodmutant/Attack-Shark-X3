@@ -81,28 +81,32 @@ function render(snap) {
   slider('key_response_ms', st.key_response_ms, v => v + ' ms');
 
   if (window.renderMacros) window.renderMacros(snap);
-
-  $('packets').textContent = Object.entries(snap.packets)
-    .map(([k, v]) => k.padEnd(8) + v).join('\n');
+  // a #macro deep link can only be honoured once there is a snapshot to edit
+  if (!openedFromHash && location.hash.startsWith('#macro') && window.openMacroFromHash) {
+    openedFromHash = true;
+    window.openMacroFromHash();
+  }
 }
+let openedFromHash = false;
 
 function renderBattery(b) {
   const host = $('batt'), fill = $('battfill'), pct = $('battpct');
-  if (!b || typeof b.level_raw !== 'number') {
+  if (!b || typeof b.percent !== 'number') {
     host.className = 'batt unknown';
     fill.style.width = '0%';
     pct.textContent = '—';
     host.title = 'waiting for the mouse to report status';
     return;
   }
-  /* The mouse sends a level byte we have not yet decoded: it does not behave
-     like a percentage. Show it honestly rather than inventing a number. */
-  host.className = 'batt unverified';
-  fill.style.width = '0%';
-  pct.textContent = b.volts_guess ? b.volts_guess.toFixed(2) + 'V?' : '0x' + b.level_raw.toString(16);
-  host.title = 'raw status ' + b.raw + ' - level byte 0x' + b.level_raw.toString(16)
-    + ' is not yet decoded, so no percentage is shown'
-    + (b.age != null ? ' (' + Math.round(b.age) + 's ago)' : '');
+  /* The device reports a cell voltage, not a percentage; the figure shown is
+     that voltage mapped through a Li-ion curve. The voltage is the measured
+     part, so the tooltip carries it. */
+  host.className = 'batt' + (b.percent <= 20 ? ' low' : '');
+  fill.style.width = Math.max(0, Math.min(100, b.percent)) + '%';
+  pct.textContent = b.percent + '%';
+  host.title = b.volts.toFixed(2) + ' V measured (raw ' + b.raw + ')'
+    + ' - percentage is derived from a Li-ion discharge curve'
+    + (b.age != null ? ', read ' + Math.round(b.age) + 's ago' : '');
 }
 
 function renderButtons(snap) {

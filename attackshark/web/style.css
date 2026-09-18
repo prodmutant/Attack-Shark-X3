@@ -49,9 +49,13 @@ button,input,select{font:inherit;color:inherit}
 }
 .brand{display:flex;align-items:center;gap:14px;min-width:0}
 .logo{
-  width:64px;height:64px;object-fit:cover;display:block;
-  border:1px solid var(--line2);background:#000;
+  width:74px;height:74px;object-fit:cover;object-position:center;
+  display:block;border:1px solid var(--line2);background:#000;
+  /* the source art has margin around the mark, so scale past the frame and
+     let the frame crop it - otherwise it reads as a small dot in a big box */
+  transform:scale(1.18);transform-origin:center;
 }
+.brand{overflow:hidden}
 .logo.round{border-radius:50%}
 .wordmark{display:flex;flex-direction:column;line-height:1.15;min-width:0}
 .wordmark b{font-size:21px;letter-spacing:.2em;font-weight:700;color:var(--fg)}
@@ -69,10 +73,9 @@ button,input,select{font:inherit;color:inherit}
 .batt .meter i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
 .batt.low .meter i{background:var(--accent)}
 .batt .pct{font-family:var(--mono);font-size:12px;min-width:38px}
+.batt .volts{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .batt.unknown{opacity:.45}
-/* the level byte is still undecoded - flag it rather than fake a percentage */
-.batt.unverified .meter{border-style:dashed}
-.batt.unverified .pct{color:var(--dim)}
+.batt.low .pct{color:var(--accent-hi)}
 
 .link{display:flex;align-items:center;gap:9px;font-size:12px;white-space:nowrap}
 .link .dot{width:8px;height:8px;background:var(--dim);display:inline-block;flex:none}
@@ -82,20 +85,39 @@ button,input,select{font:inherit;color:inherit}
 
 /* ------------------------------------------------------------------ grid */
 .grid{
-  display:grid;grid-template-columns:300px minmax(0,1fr);
-  align-items:start;gap:0;max-width:1180px;margin:0 auto;
+  display:grid;grid-template-columns:270px minmax(0,1fr);
+  align-items:start;gap:0;max-width:1400px;margin:0 auto;
 }
-.col{padding:22px}
-.col+.col{border-left:1px solid var(--line)}
+/* the mouse stays in view while the settings scroll past it */
+.side{padding:22px 20px;position:sticky;top:78px}
+.panes{
+  padding:22px 24px;border-left:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));
+  column-gap:36px;align-content:start;
+}
+/* a block is a heading and its controls; keep it whole in one column */
+.blk{break-inside:avoid;min-width:0}
+.blk.span{grid-column:1/-1}
+/* four on/off toggles read better two-up than as a tall stack */
+.blk .fields.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px}
+.binds{max-width:620px}
+.blk>h2:first-child{margin-top:0}
+.blk+.blk>h2:first-child{margin-top:26px}
+@media (max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .side{position:static}
+  .panes{border-left:0;border-top:1px solid var(--line)}
+}
 h2{
   margin:26px 0 12px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
   color:var(--dim);font-weight:600;border-bottom:1px solid var(--line);padding-bottom:7px;
 }
 .col>h2:first-child{margin-top:0}
+.row.wrap{flex-wrap:wrap}
 .hint{color:var(--dim);font-size:12px}
 
 /* ----------------------------------------------------------- mouse map */
-.mouse svg{width:100%;max-width:168px;display:block;margin:2px auto 20px}
+.mouse svg{width:100%;max-width:190px;display:block;margin:0 auto 22px}
 .shell{fill:none;stroke:#4a3f52;stroke-width:2.2}
 .seam{stroke:#3a3142;stroke-width:1.2;fill:none}
 .hit rect{cursor:pointer;transition:fill .12s}
@@ -106,6 +128,7 @@ h2{
   fill:var(--dim);font:600 13px var(--mono);text-anchor:middle;
   pointer-events:none;dominant-baseline:middle;
 }
+.sensor{fill:none;stroke:#3a3142;stroke-width:1.1}
 .lbl.side{font-size:11px}
 .lbl.on{fill:var(--fg)}
 
@@ -206,6 +229,23 @@ dialog{
 dialog::backdrop{background:#000a;backdrop-filter:blur(2px)}
 dialog form{padding:20px}
 dialog h3{margin:0 0 14px;font-size:13px;letter-spacing:.16em;text-transform:uppercase}
+dialog.wide{width:min(760px,95vw)}
+
+/* macro editor -------------------------------------------------------- */
+.dlghead{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
+.dlghead h3{margin:0}
+/* where the macro runs decides whether this app has to stay open, so it is
+   stated on the editor rather than buried in a tooltip */
+.target{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.target.device{color:var(--ok)}
+
+.stephead{
+  display:grid;grid-template-columns:30px 66px 1fr 78px;gap:8px;
+  padding:6px 8px;border:1px solid var(--line);border-bottom:0;
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);
+}
+.addbar{margin-top:12px;flex-wrap:wrap}
+.addbar .sp{flex:1}
 .tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:14px}
 .tab{
   background:none;border:0;border-bottom:2px solid transparent;padding:8px 14px;
@@ -297,19 +337,32 @@ table.binds{width:100%;border-collapse:collapse}
   content:"no steps yet - add one below, or hit Record";
   display:block;padding:16px;color:var(--dim);font-size:12px;
 }
+/* columns line up with .stephead: index, kind, detail, controls */
 .step{
-  display:flex;align-items:center;gap:8px;padding:6px 8px;
+  display:grid;grid-template-columns:30px 66px 1fr 78px;gap:8px;
+  align-items:center;padding:5px 8px;
   border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;
 }
 .step:last-child{border-bottom:0}
-.step .ix{color:var(--dim);min-width:22px}
-.step .kind{min-width:54px;color:var(--accent)}
+.step:nth-child(even){background:rgba(255,255,255,.017)}
+.step .ix{color:var(--dim)}
+.step .kind{color:var(--accent);text-transform:uppercase;font-size:10px;letter-spacing:.1em}
+/* every editor for a step, whatever its type, shares the third column */
+.step>select,.step>label,.step>input{grid-column:3;justify-self:start}
+.step>label+label,.step>select+select,.step>select+label{grid-column:3}
+.step .detail{grid-column:3;display:flex;gap:8px;align-items:center;min-width:0;flex-wrap:wrap}
 .step input,.step select{
   background:var(--seg-bg);border:1px solid var(--line2);color:var(--fg);
   padding:3px 6px;font-family:var(--mono);font-size:12px;
 }
 .step input[type=number]{width:70px}
-.step .sp{flex:1}
-.step .x{cursor:pointer;color:var(--dim);border:0;background:none;padding:2px 6px}
+.step .sp{display:none}
+.step .ctl{grid-column:4;display:flex;justify-content:flex-end;gap:2px}
+.step .x{
+  cursor:pointer;color:var(--dim);border:1px solid transparent;background:none;
+  padding:1px 5px;font-family:var(--mono);line-height:1.4;
+}
+.step .x:hover{color:var(--fg);border-color:var(--line2)}
+.steps{max-height:min(46vh,380px)}
 .step .x:hover{color:var(--accent-hi)}
 .rec{border-color:var(--accent)!important;color:var(--accent-hi)!important}

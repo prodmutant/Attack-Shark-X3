@@ -418,12 +418,41 @@ class Handler(BaseHTTPRequestHandler):
         return self.send_error(404)
 
 
+def resync_device():
+    """Push the whole configuration once at startup.
+
+    The mouse answers no reads, so the app cannot discover what the device
+    actually holds - and anything else that talks to it (the vendor tool, a
+    capture replay, another machine) silently leaves the two disagreeing. The
+    symptom is nasty because it looks like a broken feature: the UI shows
+    lift-off 1 mm while the mouse is on 2 mm, so toggling it "does nothing".
+
+    The vendor app has the same problem and solves it the same way, pushing its
+    full burst on launch. Doing it here means the device always matches what is
+    on screen from the first frame.
+    """
+    mouse = AttackSharkX3()
+    if not AttackSharkX3.discover():
+        return False
+    with _lock:
+        with mouse:
+            mouse.apply()
+    return True
+
+
 def serve(port=DEFAULT_PORT, open_browser=True):
     threading.Thread(target=_status_monitor, daemon=True).start()
     try:
         _sync_engine(AttackSharkX3())        # restore bindings from last run
     except Exception:
         pass
+    try:
+        if resync_device():
+            print("configuration pushed - the mouse now matches the interface")
+        else:
+            print("mouse not detected; settings will be pushed when it appears")
+    except Exception as exc:
+        print(f"could not push configuration at startup: {exc}")
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}/"
     print(f"attackshark ui -> {url}   (ctrl-c to stop)")

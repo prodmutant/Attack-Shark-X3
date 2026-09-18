@@ -163,6 +163,7 @@
     const host = $('msteps');
     host.textContent = '';
     editing.steps.forEach((st, i) => host.append(stepRow(st, i)));
+    paintTarget();
   }
 
   function stepRow(st, i) {
@@ -170,7 +171,11 @@
     row.append(el('span', 'ix', String(i + 1)));
     row.append(el('span', 'kind', st.t));
 
-    const put = (node) => row.append(node);
+    // every step type puts its editors in one column, so the rows line up
+    // with the header no matter how many fields a type needs
+    const detail = el('div', 'detail');
+    row.append(detail);
+    const put = (node) => detail.append(node);
 
     if (st.t === 'key') {
       const k = el('select');
@@ -202,15 +207,46 @@
       put(numField('± jitter', st, 'jitter'));
     }
 
-    row.append(el('span', 'sp'));
+    const ctl = el('div', 'ctl');
     const up = el('button', 'x', '↑'); up.type = 'button';
+    up.title = 'move up';
     up.onclick = () => move(i, -1);
     const dn = el('button', 'x', '↓'); dn.type = 'button';
+    dn.title = 'move down';
     dn.onclick = () => move(i, +1);
-    const rm = el('button', 'x', '✕'); rm.type = 'button';
+    const rm = el('button', 'x', '×'); rm.type = 'button';
+    rm.title = 'remove';
     rm.onclick = () => { editing.steps.splice(i, 1); paintSteps(); };
-    row.append(up, dn, rm);
+    ctl.append(up, dn, rm);
+    row.append(ctl);
     return row;
+  }
+
+  /* Mirrors macro.py device_support(): says where this macro will run.
+     A device macro needs nothing running afterwards, so it is worth telling
+     the user before they save. */
+  function targetOf(mac) {
+    const kinds = new Set((mac.steps || []).map(s => s.t));
+    if (kinds.has('move') || kinds.has('wheel'))
+      return ['host', 'runs from this app - movement is not storable on the mouse'];
+    if (kinds.has('mouse'))
+      return ['host', 'runs from this app - mouse buttons in a device macro are not decoded'];
+    if (kinds.has('delay'))
+      return ['host', 'runs from this app - the device block has no delay field'];
+    if (!kinds.has('key'))
+      return ['host', 'nothing the mouse can store yet'];
+    if (mac.repeat !== 'once' && mac.repeat !== 'count')
+      return ['host', 'runs from this app - hold/toggle is a host behaviour'];
+    return ['device', 'runs on the mouse itself - no injection, nothing resident'];
+  }
+
+  function paintTarget() {
+    const node = $('mtarget');
+    if (!node || !editing) return;
+    const [where, why] = targetOf(editing);
+    node.textContent = where === 'device' ? 'on the mouse' : 'on the host';
+    node.className = 'target ' + where;
+    node.title = why;
   }
 
   function dirSelect(st) {
@@ -312,6 +348,19 @@
     await post('/api/macro/save', { macro: editing }, 'macro saved');
     editing = null;
   });
+
+  /* Deep link: #macro opens a new macro, #macro=<id> opens that one. Handy for
+     linking someone straight to the editor, and it is how the layout gets
+     screenshotted without a human to click. */
+  window.openMacroEditor = openEditor;
+  window.addEventListener('hashchange', openFromHash);
+  function openFromHash() {
+    const h = decodeURIComponent(location.hash || '');
+    if (!h.startsWith('#macro')) return;
+    const id = h.includes('=') ? h.slice(h.indexOf('=') + 1) : null;
+    if (S2()) openEditor(id);
+  }
+  window.openMacroFromHash = openFromHash;
 
   window.renderMacros = renderMacros;
 })();

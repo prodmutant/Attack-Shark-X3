@@ -375,28 +375,63 @@ def parse_buttons(buf: bytes) -> dict:
     )
 
 
+#: Open-circuit voltage -> state of charge for a single Li-ion cell.
+#:
+#: The mouse reports a voltage, not a percentage, so a curve is the only way to
+#: get a usable figure. This one is anchored on a measurement rather than
+#: invented: the device read 0x40 = 4.00 V while the vendor app displayed 90 %,
+#: which is exactly where 4.00 V sits on a standard 1S discharge curve. The
+#: rest of the points are that curve; they are an approximation, and
+#: `percent_verified` stays False to say so.
+LIION_CURVE = (
+    (3.30, 0), (3.50, 8), (3.60, 20), (3.70, 40), (3.75, 50), (3.80, 62),
+    (3.85, 72), (3.90, 80), (3.95, 86), (4.00, 90), (4.05, 94), (4.10, 96),
+    (4.15, 98), (4.20, 100),
+)
+
+
+def volts_to_percent(volts):
+    """State of charge for a cell voltage, piecewise linear over LIION_CURVE."""
+    if volts <= LIION_CURVE[0][0]:
+        return 0
+    if volts >= LIION_CURVE[-1][0]:
+        return 100
+    for (v0, p0), (v1, p1) in zip(LIION_CURVE, LIION_CURVE[1:]):
+        if v0 <= volts <= v1:
+            span = v1 - v0
+            frac = 0.0 if span == 0 else (volts - v0) / span
+            return int(round(p0 + frac * (p1 - p0)))
+    return 0
+
+
 def parse_status(buf):
     """Decode a status input report from the 0x000A collection.
 
     Observed: ``03 10 40 01 09`` - report id, kind, then three bytes.
 
-    Byte 2 is NOT confirmed to be a battery percentage. It reads 0x40 and has
-    not moved, while the vendor app's own figure changed from 100 to 90 over
-    the same period - so whatever that app displays, it is not this byte, and
-    0x40 is not a live percentage. A fixed-point voltage (0x40/16 = 4.0 V) fits
-    a charged cell and would explain why it barely moves, but that is a
-    hypothesis. `tools/battery_log.py` logs it across a charge/discharge cycle
-    to settle it. Until then this is reported as a raw value, not a percentage.
+    Byte 2 is a **voltage in 1/16 V**, not a percentage. It reads 0x40 and
+    barely moves, which is what a cell voltage does and a percentage does not.
+    0x40 / 16 = 4.00 V, and the vendor app showed 90 % at that same reading -
+    exactly where 4.00 V falls on a 1S Li-ion curve. So the voltage reading is
+    corroborated by an independent source, and `percent` is derived from it
+    through LIION_CURVE.
+
+    The percentage is therefore an approximation of the cell's state of charge,
+    not a figure the device sent; `percent_verified` is False to say so.
+    `tools/battery_log.py` logs the byte across a charge/discharge cycle, which
+    would let the curve be replaced with measured points.
     """
     if not buf or len(buf) < 3 or buf[0] != STATUS_REPORT_ID:
         return None
     if buf[1] != STATUS_KIND_BATTERY:
         return {"kind": buf[1], "raw": bytes(buf).hex(" ")}
+    volts = round(buf[2] / 16.0, 2)
     return {
         "kind": "battery",
         "level_raw": buf[2],
-        "volts_guess": round(buf[2] / 16.0, 2),   # unconfirmed; see docstring
-        "verified": False,
+        "volts": volts,
+        "percent": volts_to_percent(volts),
+        "percent_verified": False,       # derived from a curve, not read
         "flags": buf[3] if len(buf) > 3 else None,
         "extra": buf[4] if len(buf) > 4 else None,
         "raw": bytes(buf).hex(" "),
