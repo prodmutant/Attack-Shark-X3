@@ -49,11 +49,13 @@ button,input,select{font:inherit;color:inherit}
 }
 .brand{display:flex;align-items:center;gap:14px;min-width:0}
 .logo{
-  width:74px;height:74px;object-fit:cover;object-position:center;
+  /* The art runs edge to edge on its own canvas, so a round frame clips its
+     corners - the mask loses its horns and jaw. Padding shrinks the picture
+     inside a frame that stays the same size, which shows more of the mark
+     rather than more of the crop. `contain` then keeps it un-squashed. */
+  width:74px;height:74px;box-sizing:border-box;padding:9px;
+  object-fit:contain;object-position:center;
   display:block;border:1px solid var(--line2);background:#000;
-  /* the source art has margin around the mark, so scale past the frame and
-     let the frame crop it - otherwise it reads as a small dot in a big box */
-  transform:scale(1.18);transform-origin:center;
 }
 .brand{overflow:hidden}
 .logo.round{border-radius:50%}
