@@ -91,11 +91,28 @@ let openedFromHash = false;
 
 function renderBattery(b) {
   const host = $('batt'), fill = $('battfill'), pct = $('battpct');
-  if (!b || typeof b.percent !== 'number') {
+  if (!b) {
     host.className = 'batt unknown';
     fill.style.width = '0%';
     pct.textContent = '—';
     host.title = 'waiting for the mouse to report status';
+    return;
+  }
+  if (b.charging) {
+    /* the device is reporting bus voltage, not the cell, so there is no state
+       of charge to show - say charging rather than invent 100% */
+    host.className = 'batt charging';
+    fill.style.width = '100%';
+    pct.textContent = 'chg';
+    host.title = b.volts.toFixed(2) + ' V on the bus (raw ' + b.raw + ')'
+      + ' - the cable is in, so the cell level is not being reported';
+    return;
+  }
+  if (typeof b.percent !== 'number') {
+    host.className = 'batt unknown';
+    fill.style.width = '0%';
+    pct.textContent = '—';
+    host.title = 'status report carried no usable level';
     return;
   }
   /* The device reports a cell voltage, not a percentage; the figure shown is

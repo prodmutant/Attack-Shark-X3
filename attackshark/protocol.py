@@ -383,6 +383,9 @@ def parse_buttons(buf: bytes) -> dict:
 #: which is exactly where 4.00 V sits on a standard 1S discharge curve. The
 #: rest of the points are that curve; they are an approximation, and
 #: `percent_verified` stays False to say so.
+#: Above this the reading cannot be the cell; it is the 5 V bus.
+CELL_MAX_V = 4.35
+
 LIION_CURVE = (
     (3.30, 0), (3.50, 8), (3.60, 20), (3.70, 40), (3.75, 50), (3.80, 62),
     (3.85, 72), (3.90, 80), (3.95, 86), (4.00, 90), (4.05, 94), (4.10, 96),
@@ -426,11 +429,19 @@ def parse_status(buf):
     if buf[1] != STATUS_KIND_BATTERY:
         return {"kind": buf[1], "raw": bytes(buf).hex(" ")}
     volts = round(buf[2] / 16.0, 2)
+    # A 1S Li-ion cell tops out around 4.25 V, so anything above this is not
+    # the cell being reported - it is the 5 V bus, i.e. the cable is in. Two
+    # samples so far: 4.00 V with flags=1 on the dongle, 5.00 V with flags=0
+    # while charging. The voltage is the sound part of that; whether flags is
+    # the charge bit is a guess on two data points, so it is not used here.
+    charging = volts > CELL_MAX_V
     return {
         "kind": "battery",
         "level_raw": buf[2],
         "volts": volts,
-        "percent": volts_to_percent(volts),
+        "charging": charging,
+        # no meaningful state of charge while the bus voltage is what we see
+        "percent": None if charging else volts_to_percent(volts),
         "percent_verified": False,       # derived from a curve, not read
         "flags": buf[3] if len(buf) > 3 else None,
         "extra": buf[4] if len(buf) > 4 else None,

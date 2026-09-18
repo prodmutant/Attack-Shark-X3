@@ -76,6 +76,8 @@ button,input,select{font:inherit;color:inherit}
 .batt .volts{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .batt.unknown{opacity:.45}
 .batt.low .pct{color:var(--accent-hi)}
+.batt.charging .meter i{background:var(--dim)}
+.batt.charging .pct{color:var(--dim)}
 
 .link{display:flex;align-items:center;gap:9px;font-size:12px;white-space:nowrap}
 .link .dot{width:8px;height:8px;background:var(--dim);display:inline-block;flex:none}
