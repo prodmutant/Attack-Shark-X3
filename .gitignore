@@ -11,7 +11,3 @@ build/
 # use to anyone downloading it. Build your own: python tools/build_driver.py
 driver/build/
 driver/out/
-
-# .NET build output for the desktop app
-desktop/**/bin/
-desktop/**/obj/

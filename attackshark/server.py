@@ -84,13 +84,46 @@ def _device_info():
 
 _battery_cache = {"value": None, "at": 0.0}
 
+#: Kept beside the config rather than in it: a reading is observed data, not
+#: a setting, and it must never be able to disturb the profile.
+def _battery_cache_path():
+    return AttackSharkX3().state_path + ".battery"
+
+
+def _load_battery_cache():
+    """A reading from the last run, so the meter is not blank at startup.
+
+    The mouse pushes status on its own schedule and can take seconds to say
+    anything, which left the header showing a dash every time the app opened.
+    """
+    try:
+        with open(_battery_cache_path(), encoding="utf-8") as fh:
+            saved = json.load(fh)
+        if isinstance(saved, dict) and "value" in saved:
+            _battery_cache["value"] = saved["value"]
+            _battery_cache["at"] = float(saved.get("at") or 0.0)
+    except (OSError, ValueError, TypeError):
+        pass
+
+
+def _save_battery_cache():
+    try:
+        tmp = _battery_cache_path() + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump({"value": _battery_cache["value"],
+                       "at": _battery_cache["at"]}, fh)
+        os.replace(tmp, _battery_cache_path())
+    except OSError:
+        pass
+
 
 def _battery():
     """Whatever the monitor last heard. Never blocks a request."""
     v = _battery_cache["value"]
     if v is None:
         return None
-    return dict(v, age=round(time.time() - _battery_cache["at"], 1))
+    age = time.time() - _battery_cache["at"]
+    return dict(v, age=round(age, 1), stale=age > 180)
 
 
 def _status_monitor(interval=25.0):
@@ -100,9 +133,11 @@ def _status_monitor(interval=25.0):
     while True:
         try:
             st = AttackSharkX3().read_status(timeout=8.0)
-            if st and st.get("kind") == "battery":
+            # never let a placeholder overwrite a real reading
+            if st and st.get("kind") == "battery" and st.get("plausible"):
                 _battery_cache["value"] = st
                 _battery_cache["at"] = time.time()
+                _save_battery_cache()
         except Exception:
             pass
         time.sleep(interval)
@@ -441,6 +476,7 @@ def resync_device():
 
 
 def serve(port=DEFAULT_PORT, open_browser=True):
+    _load_battery_cache()          # show the last known level immediately
     threading.Thread(target=_status_monitor, daemon=True).start()
     try:
         _sync_engine(AttackSharkX3())        # restore bindings from last run

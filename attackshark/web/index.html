@@ -32,6 +32,9 @@
     <div class="batt" id="batt" title="read from the mouse, not the vendor app">
       <span class="meter"><i id="battfill"></i></span>
       <span class="pct" id="battpct">—</span>
+      <!-- the measured value, beside the derived one: the percentage moves in
+           5-point steps so on its own it looks stuck -->
+      <span class="volts" id="battvolts"></span>
     </div>
     <div class="link" id="link">
       <!-- the one indicator here: it reports real hardware presence -->

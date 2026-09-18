@@ -386,6 +386,24 @@ def parse_buttons(buf: bytes) -> dict:
 #: Above this the reading cannot be the cell; it is the 5 V bus.
 CELL_MAX_V = 4.35
 
+#: Below this it is not a reading at all. The mouse occasionally emits a
+#: placeholder - `03 10 03 00 ff`, which decodes to 0.19 V with the trailing
+#: byte at 0xFF - and taking the first report off the collection without
+#: checking meant that got shown as 0 %. A lithium cell that had actually
+#: reached 0.19 V would be destroyed, so anything this low is the device
+#: saying "nothing to report", not a flat battery.
+CELL_MIN_V = 3.0
+
+#: The highest a USB bus reading should ever be.
+BUS_MAX_V = 5.5
+
+#: The device reports the voltage in sixteenths of a volt, so between an empty
+#: cell (3.30 V) and a full one (4.20 V) there are only about fifteen distinct
+#: values it can ever send. The percentage therefore moves in visible steps and
+#: sits still for hours at a time - that is the hardware's resolution, not a
+#: stalled reading, and the UI says so rather than letting it look broken.
+VOLT_STEP = 1.0 / 16.0
+
 LIION_CURVE = (
     (3.30, 0), (3.50, 8), (3.60, 20), (3.70, 40), (3.75, 50), (3.80, 62),
     (3.85, 72), (3.90, 80), (3.95, 86), (4.00, 90), (4.05, 94), (4.10, 96),
@@ -429,20 +447,28 @@ def parse_status(buf):
     if buf[1] != STATUS_KIND_BATTERY:
         return {"kind": buf[1], "raw": bytes(buf).hex(" ")}
     volts = round(buf[2] / 16.0, 2)
+    plausible = CELL_MIN_V <= volts <= BUS_MAX_V
     # A 1S Li-ion cell tops out around 4.25 V, so anything above this is not
     # the cell being reported - it is the 5 V bus, i.e. the cable is in. Two
     # samples so far: 4.00 V with flags=1 on the dongle, 5.00 V with flags=0
     # while charging. The voltage is the sound part of that; whether flags is
     # the charge bit is a guess on two data points, so it is not used here.
-    charging = volts > CELL_MAX_V
+    charging = CELL_MAX_V < volts <= BUS_MAX_V
     return {
         "kind": "battery",
         "level_raw": buf[2],
         "volts": volts,
         "charging": charging,
+        # False for the placeholder report; callers should keep waiting rather
+        # than show it
+        "plausible": plausible,
         # no meaningful state of charge while the bus voltage is what we see
-        "percent": None if charging else volts_to_percent(volts),
+        "percent": None if (charging or not plausible) else volts_to_percent(volts),
         "percent_verified": False,       # derived from a curve, not read
+        # how much the percentage moves for one step of the device's counter,
+        # so the UI can say why the figure is not changing
+        "percent_step": abs(volts_to_percent(min(volts + VOLT_STEP, 4.2))
+                            - volts_to_percent(volts)) if not charging else None,
         "flags": buf[3] if len(buf) > 3 else None,
         "extra": buf[4] if len(buf) > 4 else None,
         "raw": bytes(buf).hex(" "),

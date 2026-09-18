@@ -112,6 +112,7 @@ body.inapp .top{-webkit-user-select:none;user-select:none}
 .batt .volts{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .batt.unknown{opacity:.45}
 .batt.low .pct{color:var(--accent-hi)}
+.batt.stale{opacity:.55}
 .batt.charging .meter i{background:var(--dim)}
 .batt.charging .pct{color:var(--dim)}
 

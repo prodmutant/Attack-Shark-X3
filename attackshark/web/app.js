@@ -90,40 +90,48 @@ function render(snap) {
 let openedFromHash = false;
 
 function renderBattery(b) {
-  const host = $('batt'), fill = $('battfill'), pct = $('battpct');
+  const host = $('batt'), fill = $('battfill'), pct = $('battpct'), volts = $('battvolts');
+  const set = (cls, width, text, sub, title) => {
+    host.className = cls;
+    fill.style.width = width;
+    pct.textContent = text;
+    if (volts) volts.textContent = sub;
+    host.title = title;
+  };
+
   if (!b) {
-    host.className = 'batt unknown';
-    fill.style.width = '0%';
-    pct.textContent = '—';
-    host.title = 'waiting for the mouse to report status';
+    set('batt unknown', '0%', '—', '',
+        'waiting for the mouse to report its status');
     return;
   }
+  const age = b.age == null ? null : Math.round(b.age);
+  const seen = age == null ? '' : `, read ${age < 90 ? age + 's' : Math.round(age / 60) + 'm'} ago`;
+
   if (b.charging) {
-    /* the device is reporting bus voltage, not the cell, so there is no state
-       of charge to show - say charging rather than invent 100% */
-    host.className = 'batt charging';
-    fill.style.width = '100%';
-    pct.textContent = 'chg';
-    host.title = b.volts.toFixed(2) + ' V on the bus (raw ' + b.raw + ')'
-      + ' - the cable is in, so the cell level is not being reported';
+    /* the device is reporting the 5 V bus, not the cell, so there is no state
+       of charge to show - say charging rather than invent a number */
+    set('batt charging', '100%', 'chg', b.volts.toFixed(2) + ' V',
+        `${b.volts.toFixed(2)} V on the bus - the cable is in, so the cell `
+        + `level is not being reported${seen}`);
     return;
   }
   if (typeof b.percent !== 'number') {
-    host.className = 'batt unknown';
-    fill.style.width = '0%';
-    pct.textContent = '—';
-    host.title = 'status report carried no usable level';
+    set('batt unknown', '0%', '—', '', 'the status report carried no usable level');
     return;
   }
-  /* The device reports a cell voltage, not a percentage; the figure shown is
-     that voltage mapped through a Li-ion curve. The voltage is the measured
-     part, so the tooltip carries it. */
-  host.className = 'batt' + (b.percent <= 20 ? ' low' : '');
-  fill.style.width = Math.max(0, Math.min(100, b.percent)) + '%';
-  pct.textContent = b.percent + '%';
-  host.title = b.volts.toFixed(2) + ' V measured (raw ' + b.raw + ')'
-    + ' - percentage is derived from a Li-ion discharge curve'
-    + (b.age != null ? ', read ' + Math.round(b.age) + 's ago' : '');
+
+  /* The device sends a voltage in sixteenths of a volt, so there are only
+     about fifteen values it can ever report between empty and full. The figure
+     sitting still for hours is that resolution, not a stalled reading, and the
+     tooltip says so - otherwise it just looks broken. */
+  const cls = 'batt' + (b.percent <= 20 ? ' low' : '') + (b.stale ? ' stale' : '');
+  set(cls, Math.max(0, Math.min(100, b.percent)) + '%',
+      b.percent + '%', b.volts.toFixed(2) + ' V',
+      `${b.volts.toFixed(2)} V measured (raw ${b.raw})${seen}.
+`
+      + `The percentage is derived from a Li-ion curve; the device reports `
+      + `1/16 V steps, so it moves about ${b.percent_step || 5} points at a `
+      + `time and will sit still in between.`);
 }
 
 function renderButtons(snap) {

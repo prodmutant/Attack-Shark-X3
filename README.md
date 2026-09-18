@@ -5,12 +5,11 @@ reverse-engineering toolkit used to produce it.
 
 The stock software (`X3.exe`, a closed 32-bit DuiLib app) is the only way to
 configure this mouse. This project replaces it with ~2600 lines of
-dependency-free Python and a ~1500-line local web interface, uploads key macros
+dependency-free Python and a ~1600-line local web interface, uploads key macros
 into the mouse's own firmware, ships an optional ~1150-line kernel filter driver
 for host-side movement, and documents the wire protocol so anyone can port it.
 
 ```
-attackshark app                      # desktop application
 attackshark gui                      # local web interface
 attackshark info
 attackshark polling 500
@@ -19,24 +18,6 @@ attackshark button 5 forward
 attackshark flags --lod 1 --motion-sync on
 attackshark power --sleep 0.5 --deep-sleep 10 --key-response 4
 attackshark driver                   # filter driver status
-```
-
-## Two front ends, one interface
-
-`attackshark app` opens a desktop window; `attackshark gui` serves the same
-thing at `127.0.0.1:7332`. They are not two builds of the same design - they
-are the *same* front end. `desktop/X3Driver` is a WebView2 host: a WinForms
-window with no browser chrome, its own icon and taskbar entry, that renders the
-interface with Edge's engine. Identical by construction, with nothing to keep
-in sync.
-
-The window starts its own driver service on a port chosen at runtime and takes
-it down on exit, so it never collides with a web UI you already have open, and
-there is nothing left listening afterwards. Building it needs the .NET SDK and
-the Edge WebView2 runtime:
-
-```
-dotnet build desktop/X3Driver/X3Driver.csproj -c Release
 ```
 
 ## The interface
@@ -57,9 +38,6 @@ mouse as you release it.
 
 Keyboard shortcuts are captured by pressing them: open a button, switch to the
 *Keyboard shortcut* tab, and press the combination you want.
-
-The page is also the window frame in the desktop build - the header is the drag
-region and carries the caption buttons. In a browser none of that turns on.
 
 ### The mouse drawing
 
@@ -167,7 +145,13 @@ and does not defeat.
 
 ## Status
 
-The protocol is documented in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+The protocol is documented in [`docs/PROTOCOL.md`](docs/PROTOCOL.md), and
+[`docs/FINDINGS.md`](docs/FINDINGS.md) is the full account: what was decoded,
+what was tried and failed, what is still open, and where to start if you want
+to take it further.
+
+**Found a bug, or decoded something marked unknown?** Email
+**prodmutant@gmail.com**.
 `tests/test_protocol.py` reconstructs **58 of the 60 unique packets** captured
 from the vendor tool, byte-for-byte, from the documented encodings — including
 the macro-upload chunks, which are rebuilt from the macro they encode at the
@@ -251,9 +235,9 @@ attackshark/
   cli.py           command line front end
   server.py        stdlib HTTP server + JSON API for the web UI
   web/             the interface (index.html, style.css, app.js, logo.png)
-desktop/X3Driver/  the WebView2 window that hosts that interface (C#)
 driver/asxfilter/  the KMDF mouse filter driver (C, INF, shared header)
 docs/PROTOCOL.md   the wire specification
+docs/FINDINGS.md   what was found, what failed, what is still open
 docs/DRIVER.md     the driver: design, limits, install, recovery
 tests/             round-trip verification against the captures
 tools/             the RE toolkit (below)

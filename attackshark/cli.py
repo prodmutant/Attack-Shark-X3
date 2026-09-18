@@ -10,7 +10,6 @@
     python -m attackshark apply
     python -m attackshark packets
     python -m attackshark gui
-    python -m attackshark app
     python -m attackshark driver
 """
 from __future__ import annotations
@@ -144,31 +143,6 @@ def cmd_packets(dev, args):
     return 0
 
 
-def cmd_app(dev, args):
-    """Launch the desktop application.
-
-    The window is a WebView2 host in desktop/X3Driver: it renders the same
-    interface the web UI serves, with the same engine, so there is one front
-    end shown two ways rather than two that drift apart. It starts its own
-    driver service on a private port and takes it down again on exit.
-    """
-    import subprocess
-    from pathlib import Path
-
-    root = Path(__file__).resolve().parent.parent
-    exe = root / "desktop" / "X3Driver" / "bin" / "Release" / "net10.0-windows" \
-        / "PRODMUTANT X3 Driver.exe"
-    if not exe.exists():
-        print("the desktop application has not been built yet:")
-        print(f"  dotnet build {root / 'desktop' / 'X3Driver' / 'X3Driver.csproj'} -c Release")
-        print("\nit needs the .NET SDK and the Edge WebView2 runtime.")
-        print("until then, `attackshark gui` serves the same interface.")
-        return 1
-    subprocess.Popen([str(exe)], cwd=str(exe.parent))
-    print(f"launched {exe.name}")
-    return 0
-
-
 def cmd_driver(_mouse, args):
     """Report on the filter driver, and optionally move through it."""
     from . import kdriver, motion
@@ -271,9 +245,6 @@ def build_parser():
     p.add_argument("--port", type=int, default=7332)
     p.add_argument("--no-browser", action="store_true")
     p.set_defaults(fn=cmd_gui, needs_device=False)
-
-    sub.add_parser("app", help="open the desktop application").set_defaults(
-        fn=cmd_app, needs_device=False)
 
     p = sub.add_parser("driver", help="filter driver status (real mouse movement)")
     p.add_argument("--move", nargs=2, type=int, metavar=("DX", "DY"),

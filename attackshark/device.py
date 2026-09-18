@@ -325,17 +325,43 @@ class AttackSharkX3:
 
     # ------------------------------------------------------------- status ---
     def read_status(self, timeout=3.0):
-        """One status report from the 0x000A collection, or None."""
+        """A usable status report from the 0x000A collection, or None.
+
+        The mouse sometimes answers with a placeholder - `03 10 03 00 ff`,
+        which decodes to 0.19 V - and the first report off the collection is
+        not always a real measurement. Taking whatever arrived first meant the
+        interface would occasionally show 0 %, which looks exactly like a flat
+        battery and is the opposite of the truth.
+
+        So: keep reading until a plausible one arrives or the budget runs out,
+        and return the last implausible one only if nothing better came, so the
+        caller can still see what the device actually said.
+        """
         found = []
         for pid in P.PRODUCT_IDS:
             found += find_interfaces(P.VENDOR_ID, pid, P.STATUS_USAGE_PAGE)
         if not found:
             return None
+
+        deadline = time.time() + timeout
+        last = None
         try:
             with HidInterface(found[0]) as iface:
-                return P.parse_status(iface.read_input(timeout))
+                while True:
+                    left = deadline - time.time()
+                    if left <= 0:
+                        break
+                    st = P.parse_status(iface.read_input(min(left, 3.0)))
+                    if st is None:
+                        break
+                    if st.get("kind") != "battery":
+                        return st
+                    last = st
+                    if st.get("plausible"):
+                        return st
         except OSError:
-            return None
+            return last
+        return last
 
     def battery(self, timeout=3.0):
         """Raw status level. Not a percentage - see protocol.parse_status."""
