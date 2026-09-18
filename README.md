@@ -20,6 +20,21 @@ attackshark power --sleep 0.5 --deep-sleep 10 --key-response 4
 attackshark driver                   # filter driver status
 ```
 
+## Getting it
+
+There are two ways in, and they are kept apart on purpose.
+
+**A build.** The packaged executable is on the *Releases* page — one file, no
+Python needed, tray icon, opens the interface in your browser. Nothing in this
+repository is a build: `dist/` is ignored and never committed, so what you clone
+is only source, and what you download is only a binary. That way the version you
+are running is the one the release says it is.
+
+**The source.** Needs Python 3.8 or later and nothing else — no pip packages, no
+runtime to install. Clone it and run `python -m attackshark gui`, or `pip install .`
+for the `attackshark` command. Build your own copy of the executable with
+`python build_exe.py` (that one does want `pyinstaller` and `pillow`).
+
 ## The interface
 
 Three pages, from the nav in the header:
@@ -239,6 +254,7 @@ driver/asxfilter/  the KMDF mouse filter driver (C, INF, shared header)
 docs/PROTOCOL.md   the wire specification
 docs/FINDINGS.md   what was found, what failed, what is still open
 docs/DRIVER.md     the driver: design, limits, install, recovery
+docs/KNOWN_ISSUES.md  what is wrong, what is unfinished, how to finish it
 tests/             round-trip verification against the captures
 tools/             the RE toolkit (below)
 captures/          labelled HID traffic, the evidence behind the spec

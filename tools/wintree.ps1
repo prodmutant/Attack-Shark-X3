@@ -1,4 +1,9 @@
-param([string]$Proc = "X3")
+# Dump the window tree of a running process, by name without the extension.
+# Used while reverse engineering the vendor software: it names the controls
+# so a capture can be tied to the dialog that produced it.
+#
+#   powershell -File tools/wintree.ps1 -Proc <process name>
+param([Parameter(Mandatory=$true)][string]$Proc)
 Add-Type @"
 using System;using System.Runtime.InteropServices;using System.Text;
 public struct RC{public int L,T,R,B;}

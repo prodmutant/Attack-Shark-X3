@@ -1,9 +1,14 @@
-"""Build the standalone launcher.
+"""Package the release executable.
 
     python build_exe.py
 
-Produces dist/PRODMUTANT X3 Driver.exe - one file, no console, tray icon,
-with the web interface bundled inside. Needs `pip install pyinstaller pillow`.
+Produces dist/PRODMUTANT X3 Driver.exe - one file, no console, tray icon, with
+the web interface bundled inside. Needs `pip install pyinstaller pillow`.
+
+The result is deliberately not committed. A build is an output, not a source,
+and a repository that carries both is a repository where nobody can tell which
+one they are looking at: the binary goes out as a release download, the source
+stays here, and `dist/` is ignored so the two can never drift into each other.
 """
 import os
 import shutil

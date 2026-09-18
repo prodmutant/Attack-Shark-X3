@@ -5,6 +5,9 @@ and what is still open. The wire format itself is in
 [`PROTOCOL.md`](PROTOCOL.md); this is the account of what was learned, what was
 tried and failed, and what someone picking it up should do next.
 
+What is *broken* rather than merely unknown — the battery estimate, the driver
+that has never been loaded — is in [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).
+
 **Found a bug, or decoded something here marked unknown?**
 Email **prodmutant@gmail.com** — especially for the open items in §7.
 
@@ -262,7 +265,9 @@ Recorded so nobody spends the time twice:
 ## 8. What this does better than the vendor software
 
 - **Battery is actually read from the device**, with the placeholder report
-  rejected and the measured voltage shown beside the derived percentage.
+  rejected and the measured voltage shown beside the derived percentage. The
+  percentage is an estimate and is labelled as one — see
+  [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) §1 for exactly how far to trust it.
 - **Arbitrary keyboard shortcuts** on any button, not a fixed action list.
 - **Macros that run on the mouse**, with the interface telling you *where* each
   macro will run before you save it — a key-only macro needs nothing running

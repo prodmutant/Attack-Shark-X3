@@ -66,7 +66,7 @@ sends a 5-byte **input** report:
 03 10 40 01 09
 |  |  |  |  +-- unknown
 |  |  |  +----- flags (always 0x01 observed)
-|  |  +-------- battery level, 0x40 = 64 %
+|  |  +-------- battery level - see below
 |  +----------- kind: 0x10 = battery
 +-------------- report id
 ```
@@ -75,9 +75,20 @@ There is no `HidD_GetInputReport` or feature report here — the level can only 
 *received*. In practice the mouse emits one shortly after the collection is
 opened, so open / read-one / close behaves like an on-demand read.
 
-Worth noting: the vendor app shows a different, static figure (100 %) while the
-device reports 64 %, which matches the widely reported complaint that its
-battery display does not track. This driver reads the device directly.
+**Byte 2 is read as a voltage in sixteenths of a volt**, so `0x40` is 4.00 V,
+and the percentage is derived from that through a lithium discharge curve. The
+alternative reading - that the byte is a raw percentage, so `0x40` is 64 % - was
+rejected because the vendor application was observed showing roughly 90 % at
+that same value, which is where 4.00 V falls on the curve.
+
+Be aware that this rests on one uncontrolled observation, and that this
+project's own notes elsewhere record the vendor app showing a static 100 %
+against the same byte. Those cannot both be right. It is the weakest link in
+the battery decode and everything downstream inherits the uncertainty -
+`docs/KNOWN_ISSUES.md` §1 sets out the single experiment that settles it.
+
+Either way the vendor display does not track the device, which matches the
+widely reported complaint about it. This driver reads the device directly.
 
 ---
 
