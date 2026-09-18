@@ -82,7 +82,7 @@ function render(snap) {
 
   if (window.renderMacros) window.renderMacros(snap);
   // a #macro deep link can only be honoured once there is a snapshot to edit
-  if (!openedFromHash && location.hash.startsWith('#macro') && window.openMacroFromHash) {
+  if (!openedFromHash && location.hash.startsWith('#edit') && window.openMacroFromHash) {
     openedFromHash = true;
     window.openMacroFromHash();
   }
@@ -172,7 +172,8 @@ function renderDpi(st, cat) {
     rng.type = 'range';
     rng.min = cat.dpi.min; rng.max = cat.dpi.max; rng.step = cat.dpi.step;
     rng.value = dpi;
-    rng.oninput = () => { num.value = rng.value; };
+    fillTrack(rng);
+    rng.oninput = () => { num.value = rng.value; fillTrack(rng); };
     commitOn(rng, () => setDpi(i, +rng.value));
     const tdr = el('td', 'rng'); tdr.append(rng); tr.append(tdr);
 
@@ -222,15 +223,54 @@ function segment(host, options, current, onPick, hot) {
   }
 }
 
+function fillTrack(input) {
+  const min = +input.min, max = +input.max;
+  const pct = max > min ? ((+input.value - min) / (max - min)) * 100 : 0;
+  input.style.setProperty('--fill', pct.toFixed(2) + '%');
+}
+window.fillTrack = fillTrack;
+
 function slider(id, value, fmt) {
   const input = $(id), out = $(id + '_o');
   if (document.activeElement !== input) input.value = value;
   out.textContent = fmt(+input.value);
-  input.oninput = () => { out.textContent = fmt(+input.value); };
+  fillTrack(input);
+  input.oninput = () => { out.textContent = fmt(+input.value); fillTrack(input); };
   if (!input.dataset.bound) {
     input.dataset.bound = '1';
     commitOn(input, () => patch({ [id]: +input.value }));
   }
+}
+
+/* ------------------------------------------------------------------ pages */
+const PAGES = ['dashboard', 'macros', 'themes'];
+
+function showPage(name) {
+  if (!PAGES.includes(name)) name = PAGES[0];
+  for (const id of PAGES) {
+    const page = $('page-' + id);
+    if (page) page.classList.toggle('on', id === name);
+  }
+  document.querySelectorAll('.navitem').forEach(b =>
+    b.classList.toggle('on', b.dataset.page === name));
+  try { localStorage.setItem('asx.page', name); } catch (_) { /* private mode */ }
+}
+
+function currentPage() {
+  const h = (location.hash || '').replace(/^#/, '');
+  if (PAGES.includes(h)) return h;
+  try { return localStorage.getItem('asx.page') || PAGES[0]; } catch (_) { return PAGES[0]; }
+}
+
+function initPages() {
+  document.querySelectorAll('.navitem').forEach(b => {
+    b.onclick = () => { location.hash = b.dataset.page; showPage(b.dataset.page); };
+  });
+  window.addEventListener('hashchange', () => {
+    const h = (location.hash || '').replace(/^#/, '');
+    if (PAGES.includes(h)) showPage(h);
+  });
+  showPage(currentPage());
 }
 
 /* Only commit a control when a human actually drove it.
@@ -375,6 +415,24 @@ const THEMES = [
   ['citrine', 'citrine', '#c99700'],
 ];
 const THEME_KEY = 'as.theme', FX_KEY = 'as.fx';
+const PALETTE_TOKENS = ['--bg', '--panel', '--accent', '--fg'];
+const _paletteCache = {};
+
+/* A theme is a block of custom properties keyed on [data-theme]. Setting that
+   attribute on an offscreen probe makes the browser resolve them for us, so
+   the swatches cannot drift from themes.css. */
+function themePalette(id) {
+  if (_paletteCache[id]) return _paletteCache[id];
+  const probe = el('div');
+  probe.setAttribute('data-theme', id);
+  probe.style.cssText = 'position:absolute;left:-9999px;width:0;height:0';
+  document.body.append(probe);
+  const cs = getComputedStyle(probe);
+  const out = PALETTE_TOKENS.map(t => cs.getPropertyValue(t).trim() || '#000');
+  probe.remove();
+  _paletteCache[id] = out;
+  return out;
+}
 
 function readPref(key, fallback) {
   try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; }
@@ -402,11 +460,18 @@ function paintSwatches() {
   const host = $('themes');
   if (host) {
     host.textContent = '';
-    for (const [id, label, dot] of THEMES) {
-      const b = el('button', 'swatch' + (id === cur ? ' on' : ''));
+    for (const [id, label] of THEMES) {
+      const b = el('button', 'tile' + (id === cur ? ' on' : ''));
       b.type = 'button';
-      const i = el('i'); i.style.background = dot;
-      b.append(i, document.createTextNode(label));
+      const strip = el('span', 'palette');
+      // read the tokens out of themes.css rather than restating them here,
+      // so a theme edited there shows its real colours with no second copy
+      for (const tok of themePalette(id)) {
+        const chip = el('i');
+        chip.style.background = tok;
+        strip.append(chip);
+      }
+      b.append(strip, el('span', 'nm', label));
       b.onclick = () => applyTheme(id);
       host.append(b);
     }
@@ -436,6 +501,8 @@ $('logo').addEventListener('error', () => { $('logo').style.visibility = 'hidden
 /* ------------------------------------------------------------------- boot */
 Object.assign(window, { S: null, api, el, toast, segment, render, $ });
 Object.defineProperty(window, 'S', { get: () => S, configurable: true });
+
+initPages();
 
 (async () => {
   try { render(await api('/api/state')); }

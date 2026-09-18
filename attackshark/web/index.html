@@ -19,6 +19,15 @@
       <span>X3 DRIVER</span>
     </div>
   </div>
+
+  <!-- three places to be, not one long scroll. Square text tabs: the current
+       page is marked by the rule under it, not by a pill or a glow. -->
+  <nav class="nav" id="nav">
+    <button type="button" class="navitem on" data-page="dashboard">Dashboard</button>
+    <button type="button" class="navitem" data-page="macros">Macros</button>
+    <button type="button" class="navitem" data-page="themes">Themes</button>
+  </nav>
+
   <div class="status">
     <div class="batt" id="batt" title="read from the mouse, not the vendor app">
       <span class="meter"><i id="battfill"></i></span>
@@ -127,83 +136,98 @@
 
   <div class="panes">
 
-    <section class="blk">
-      <h2>DPI stages</h2>
-      <table class="dpi" id="dpi">
-        <thead><tr><th>#</th><th>DPI</th><th></th><th>Colour</th><th>Active</th></tr></thead>
-        <tbody id="dpibody"></tbody>
-      </table>
-      <div class="row">
-        <button class="btn" id="addstage">Add stage</button>
-        <button class="btn" id="delstage">Remove stage</button>
-        <span class="hint" id="dpihint"></span>
-      </div>
-    </section>
+    <div class="page on" id="page-dashboard">
 
-    <section class="blk">
-      <h2>Polling rate</h2>
-      <div class="seg" id="polling"></div>
+      <section class="blk">
+        <h2>DPI stages</h2>
+        <table class="dpi" id="dpi">
+          <thead><tr><th>#</th><th>DPI</th><th></th><th>Colour</th><th>Active</th></tr></thead>
+          <tbody id="dpibody"></tbody>
+        </table>
+        <div class="row">
+          <button class="btn" id="addstage">Add stage</button>
+          <button class="btn" id="delstage">Remove stage</button>
+          <span class="hint" id="dpihint"></span>
+        </div>
+      </section>
 
-      <h2>Sensor</h2>
-      <div class="fields two">
-        <label>Lift-off distance<div class="seg" id="lod"></div></label>
-        <label>Motion sync<div class="seg" id="motion_sync"></div></label>
-        <label>Ripple control<div class="seg" id="ripple"></div></label>
-        <label>Angle snap<div class="seg" id="angle_snap"></div></label>
-      </div>
-    </section>
+      <section class="blk">
+        <h2>Polling rate</h2>
+        <div class="seg" id="polling"></div>
 
-    <section class="blk">
-      <h2>Power &amp; response</h2>
-      <div class="fields">
-        <label>Sleep
-          <div class="slide"><input type="range" id="sleep_min" min="0.5" max="30" step="0.5"><output id="sleep_min_o"></output></div>
-        </label>
-        <label>Deep sleep
-          <div class="slide"><input type="range" id="deep_sleep_min" min="1" max="60" step="1"><output id="deep_sleep_min_o"></output></div>
-        </label>
-        <label>Key response
-          <div class="slide"><input type="range" id="key_response_ms" min="2" max="50" step="2"><output id="key_response_ms_o"></output></div>
-        </label>
-      </div>
-    </section>
+        <h2>Sensor</h2>
+        <div class="fields two">
+          <label>Lift-off distance<div class="seg" id="lod"></div></label>
+          <label>Motion sync<div class="seg" id="motion_sync"></div></label>
+          <label>Ripple control<div class="seg" id="ripple"></div></label>
+          <label>Angle snap<div class="seg" id="angle_snap"></div></label>
+        </div>
+      </section>
 
-    <section class="blk span">
-      <h2>Macros</h2>
-      <div class="row">
-        <div class="seg" id="engine"></div>
-        <span class="hint" id="enginehint"></span>
-      </div>
-      <ol class="maclist" id="maclist"></ol>
-      <div class="row">
-        <button class="btn" id="macnew">New macro</button>
-        <span class="hint">key-only macros run on the mouse itself; anything with movement runs from this app</span>
-      </div>
+      <section class="blk">
+        <h2>Power &amp; response</h2>
+        <div class="fields">
+          <label>Sleep
+            <div class="slide"><input type="range" id="sleep_min" min="0.5" max="30" step="0.5"><output id="sleep_min_o"></output></div>
+          </label>
+          <label>Deep sleep
+            <div class="slide"><input type="range" id="deep_sleep_min" min="1" max="60" step="1"><output id="deep_sleep_min_o"></output></div>
+          </label>
+          <label>Key response
+            <div class="slide"><input type="range" id="key_response_ms" min="2" max="50" step="2"><output id="key_response_ms_o"></output></div>
+          </label>
+        </div>
+      </section>
 
-      <h3 class="sub">Button bindings</h3>
-      <table class="binds"><tbody id="binds"></tbody></table>
-    </section>
+      <section class="blk">
+        <h2>Profile</h2>
+        <div class="row wrap">
+          <button class="btn" id="apply">Push everything</button>
+          <button class="btn" id="export">Export…</button>
+          <button class="btn" id="importbtn">Import…</button>
+          <button class="btn danger" id="reset">Factory reset</button>
+          <input type="file" id="importfile" accept="application/json" hidden>
+        </div>
+        <p class="hint">The mouse answers no reads, so settings are pushed to it,
+          never read back. Everything here is sent once when the app starts.</p>
+      </section>
 
-    <section class="blk">
-      <h2>Appearance</h2>
-      <div class="fields">
-        <label>Theme<div class="swatches" id="themes"></div></label>
-        <label>Particles<div class="swatches" id="fxpick"></div></label>
-      </div>
-    </section>
+    </div>
 
-    <section class="blk">
-      <h2>Profile</h2>
-      <div class="row wrap">
-        <button class="btn" id="apply">Push everything</button>
-        <button class="btn" id="export">Export…</button>
-        <button class="btn" id="importbtn">Import…</button>
-        <button class="btn danger" id="reset">Factory reset</button>
-        <input type="file" id="importfile" accept="application/json" hidden>
-      </div>
-      <p class="hint">The mouse answers no reads, so settings are pushed to it,
-        never read back. Everything here is sent once when the app starts.</p>
-    </section>
+    <div class="page" id="page-macros">
+
+      <section class="blk span">
+        <h2>Macros</h2>
+        <div class="row">
+          <div class="seg" id="engine"></div>
+          <span class="hint" id="enginehint"></span>
+        </div>
+        <ol class="maclist" id="maclist"></ol>
+        <div class="row">
+          <button class="btn" id="macnew">New macro</button>
+          <span class="hint">key-only macros run on the mouse itself; anything with movement runs from this app</span>
+        </div>
+      </section>
+
+      <section class="blk span">
+        <h2>Button bindings</h2>
+        <table class="binds"><tbody id="binds"></tbody></table>
+      </section>
+
+    </div>
+
+    <div class="page" id="page-themes">
+
+      <section class="blk span">
+        <h2>Theme</h2>
+        <p class="hint">The mouse on the left is the preview.</p>
+        <div class="tiles" id="themes"></div>
+
+        <h2>Particles</h2>
+        <div class="swatches" id="fxpick"></div>
+      </section>
+
+    </div>
 
   </div>
 </main>

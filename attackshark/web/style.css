@@ -61,6 +61,24 @@ button,input,select{font:inherit;color:inherit}
 .wordmark b{font-size:21px;letter-spacing:.2em;font-weight:700;color:var(--fg)}
 .wordmark span{font-size:11px;letter-spacing:.38em;color:var(--dim)}
 
+/* Page navigation. Text, not pills: the current page is marked by the rule
+   underneath it, which is the least furniture that still reads as "you are
+   here". */
+.nav{display:flex;gap:2px;margin:0 auto 0 8px}
+.navitem{
+  background:none;border:0;border-bottom:2px solid transparent;
+  padding:9px 15px 7px;cursor:pointer;color:var(--dim);
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+}
+.navitem:hover{color:var(--fg)}
+.navitem.on{color:var(--fg);border-bottom-color:var(--accent)}
+
+.page{display:none}
+.page.on{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));
+  column-gap:36px;align-content:start;
+}
+
 .status{display:flex;align-items:center;gap:22px}
 .batt{display:flex;align-items:center;gap:8px}
 .batt .meter{
@@ -92,11 +110,7 @@ button,input,select{font:inherit;color:inherit}
 }
 /* the mouse stays in view while the settings scroll past it */
 .side{padding:22px 20px;position:sticky;top:78px}
-.panes{
-  padding:22px 24px;border-left:1px solid var(--line);
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));
-  column-gap:36px;align-content:start;
-}
+.panes{padding:22px 24px;border-left:1px solid var(--line);min-width:0}
 /* a block is a heading and its controls; keep it whole in one column */
 .blk{break-inside:avoid;min-width:0}
 .blk.span{grid-column:1/-1}
@@ -178,23 +192,56 @@ table.dpi{width:100%;border-collapse:collapse}
 .row{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
 .row.end{justify-content:flex-end;margin-top:18px}
 .btn{
-  background:var(--surface);border:1px solid var(--line2);padding:7px 13px;cursor:pointer;
-  letter-spacing:.02em;
+  background:var(--surface);border:1px solid var(--line2);padding:8px 15px;
+  cursor:pointer;letter-spacing:.02em;
+  transition:border-color .12s,background .12s,color .12s;
 }
 .btn:hover{border-color:var(--edge);background:var(--surface-hi)}
+/* pressing something that writes to hardware should feel like a press */
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:1px solid var(--accent);outline-offset:1px}
+.btn[disabled]{opacity:.4;cursor:default;transform:none}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{background:var(--accent-hi)}
+.btn.primary:hover{background:var(--accent-hi);border-color:var(--accent-hi)}
 .btn.danger:hover{border-color:var(--accent);color:#e0656b}
 
 .seg{display:flex;border:1px solid var(--line2);width:max-content}
 .seg button{
   background:var(--seg-bg);border:0;border-right:1px solid var(--line2);
-  padding:6px 14px;cursor:pointer;color:var(--dim);font-family:var(--mono);font-size:12px;
+  padding:7px 15px;cursor:pointer;color:var(--dim);
+  font-family:var(--mono);font-size:12px;transition:background .12s,color .12s;
 }
+.seg button:focus-visible{outline:1px solid var(--accent);outline-offset:-1px}
 .seg button:last-child{border-right:0}
 .seg button:hover{background:var(--surface-hi);color:var(--fg)}
 .seg button.on{background:var(--seg-on);color:var(--fg)}
 .seg button.on.hot{background:var(--accent);color:#fff}
+
+select,input[type=number],input[type=text]{
+  background:var(--seg-bg);border:1px solid var(--line2);color:var(--fg);
+  padding:6px 8px;font-family:var(--mono);font-size:12px;
+}
+select:hover,input[type=number]:hover{border-color:var(--edge)}
+select:focus-visible,input:focus-visible{outline:1px solid var(--accent);outline-offset:-1px}
+
+/* theme tiles: the palette strip is the point - you pick by colour, not by
+   remembering what "citrine" looks like */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-width:760px}
+.tile{
+  background:var(--surface);border:1px solid var(--line2);padding:0;cursor:pointer;
+  display:flex;flex-direction:column;text-align:left;
+  transition:border-color .12s;
+}
+.tile:hover{border-color:var(--edge)}
+.tile.on{border-color:var(--accent)}
+.tile:focus-visible{outline:1px solid var(--accent);outline-offset:1px}
+.tile .palette{display:flex;height:34px}
+.tile .palette i{flex:1;display:block}
+.tile .nm{
+  padding:7px 10px;font-family:var(--mono);font-size:12px;color:var(--dim);
+  border-top:1px solid var(--line2);
+}
+.tile.on .nm{color:var(--fg)}
 
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px 26px}
 .fields label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--dim)}
@@ -202,16 +249,24 @@ table.dpi{width:100%;border-collapse:collapse}
 .slide input[type=range]{flex:1;min-width:0}
 .slide output{font-family:var(--mono);font-size:12px;color:var(--fg);min-width:62px;text-align:right}
 
+/* The filled portion is a gradient stop driven by --fill, which app.js sets
+   from the value: CSS cannot work out a range's progress on its own, and an
+   unfilled track gives no sense of where in the span you are. */
 input[type=range]{
-  -webkit-appearance:none;appearance:none;height:2px;background:var(--line2);outline:none;
+  -webkit-appearance:none;appearance:none;height:3px;outline:none;cursor:pointer;
+  background:linear-gradient(to right,
+    var(--accent) 0 var(--fill,0%), var(--line2) var(--fill,0%) 100%);
 }
 input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:12px;height:16px;background:var(--fg);cursor:pointer;
+  -webkit-appearance:none;width:11px;height:18px;background:var(--fg);
+  cursor:pointer;border:0;transition:background .12s;
 }
-input[type=range]::-webkit-slider-thumb:hover{background:var(--accent)}
+input[type=range]:hover::-webkit-slider-thumb{background:var(--accent-hi)}
+input[type=range]:focus-visible::-webkit-slider-thumb{background:var(--accent)}
 input[type=range]::-moz-range-thumb{
-  width:12px;height:16px;background:var(--fg);border:0;border-radius:0;cursor:pointer;
+  width:11px;height:18px;background:var(--fg);border:0;border-radius:0;cursor:pointer;
 }
+input[type=range]::-moz-range-track{height:3px;background:transparent}
 
 /* -------------------------------------------------------------- packets */
 .packets{margin-top:26px;border-top:1px solid var(--line);padding-top:10px}

@@ -349,14 +349,14 @@
     editing = null;
   });
 
-  /* Deep link: #macro opens a new macro, #macro=<id> opens that one. Handy for
-     linking someone straight to the editor, and it is how the layout gets
+  /* Deep link: #edit opens a new macro, #edit=<id> opens that one. Kept
+     distinct from the #macros page route, and it is how the editor gets
      screenshotted without a human to click. */
   window.openMacroEditor = openEditor;
   window.addEventListener('hashchange', openFromHash);
   function openFromHash() {
     const h = decodeURIComponent(location.hash || '');
-    if (!h.startsWith('#macro')) return;
+    if (!h.startsWith('#edit')) return;
     const id = h.includes('=') ? h.slice(h.indexOf('=') + 1) : null;
     if (S2()) openEditor(id);
   }
