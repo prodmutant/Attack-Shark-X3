@@ -498,11 +498,56 @@ applyFx(_q.get('fx') || readPref(FX_KEY, 'none'));
 /* the logo is user supplied; hide the frame until one exists */
 $('logo').addEventListener('error', () => { $('logo').style.visibility = 'hidden'; });
 
+/* ----------------------------------------------------------- window chrome */
+/* Inside the desktop host there is no system title bar, so the page provides
+   the drag region and the caption buttons. In a browser `window.chrome.webview`
+   does not exist and none of this turns on. */
+function initWindowChrome() {
+  const host = window.chrome && window.chrome.webview;
+  if (!host) return;
+  document.body.classList.add('inapp');
+
+  const send = (cmd) => host.postMessage({ cmd });
+  const bind = (id, cmd) => { const b = $(id); if (b) b.onclick = () => send(cmd); };
+  bind('win-min', 'min');
+  bind('win-max', 'max');
+  bind('win-close', 'close');
+
+  const header = document.querySelector('.top');
+  if (!header) return;
+
+  // anything you can operate must not start a window drag
+  const interactive = 'button,a,input,select,textarea,label,.navitem,.wincontrols';
+
+  header.addEventListener('mousedown', (e) => {
+    if (e.button !== 0 || e.target.closest(interactive)) return;
+    // Windows takes over from here, which is what keeps Aero Snap working
+    send('drag');
+  });
+  header.addEventListener('dblclick', (e) => {
+    if (e.target.closest(interactive)) return;
+    send('max');
+  });
+
+  // the host tells us which glyph the maximise button should show
+  host.addEventListener('message', (e) => {
+    const state = e.data && e.data.state;
+    if (!state) return;
+    const b = $('win-max');
+    if (!b) return;
+    const maxed = state === 'max';
+    b.innerHTML = maxed ? '&#xE923;' : '&#xE922;';   // restore : maximise
+    b.title = maxed ? 'Restore' : 'Maximise';
+    document.body.classList.toggle('maximised', maxed);
+  });
+}
+
 /* ------------------------------------------------------------------- boot */
 Object.assign(window, { S: null, api, el, toast, segment, render, $ });
 Object.defineProperty(window, 'S', { get: () => S, configurable: true });
 
 initPages();
+initWindowChrome();
 
 (async () => {
   try { render(await api('/api/state')); }

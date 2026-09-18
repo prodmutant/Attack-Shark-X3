@@ -79,6 +79,23 @@ button,input,select{font:inherit;color:inherit}
   column-gap:36px;align-content:start;
 }
 
+/* Caption buttons, only in the desktop host. Sized to the Windows metric so
+   the corner feels like a window corner, and the close button takes the
+   system red on hover rather than the theme accent - that one is muscle
+   memory and should not be themed away. */
+.wincontrols{display:none;margin-left:14px;align-self:stretch}
+body.inapp .wincontrols{display:flex}
+.wincontrols button{
+  width:46px;border:0;background:none;color:var(--dim);cursor:default;
+  font-family:"Segoe MDL2 Assets","Segoe Fluent Icons";font-size:10px;
+  display:grid;place-items:center;
+}
+.wincontrols button:hover{background:var(--surface-hi);color:var(--fg)}
+.wincontrols button.close:hover{background:#c42b1c;color:#fff}
+
+/* the header is the drag handle; its interactive children opt out in JS */
+body.inapp .top{-webkit-user-select:none;user-select:none}
+
 .status{display:flex;align-items:center;gap:22px}
 .batt{display:flex;align-items:center;gap:8px}
 .batt .meter{
