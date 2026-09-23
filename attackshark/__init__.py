@@ -3,4 +3,4 @@ from .device import AttackSharkX3, DeviceNotFound
 from . import protocol
 
 __all__ = ["AttackSharkX3", "DeviceNotFound", "protocol"]
-__version__ = "1.0.0"
+__version__ = "1.1.0"
