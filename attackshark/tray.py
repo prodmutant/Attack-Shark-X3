@@ -39,6 +39,17 @@ ID_OPEN, ID_AUTOSTART, ID_QUIT = 1, 2, 3
 
 WNDPROC = C.WINFUNCTYPE(C.c_longlong, W.HWND, C.c_uint, W.WPARAM, W.LPARAM)
 
+# Without a declared prototype ctypes guesses each argument's type from the
+# value it is handed, and guesses `int` - so a 64-bit window handle or lparam
+# raises OverflowError instead of being passed. The callback then returns
+# nothing, the default handler never runs for that message, and because it
+# happens inside a ctypes callback Python prints "Exception ignored" and
+# carries on, which is why this was noise rather than a crash.
+u32.DefWindowProcW.argtypes = [W.HWND, C.c_uint, W.WPARAM, W.LPARAM]
+u32.DefWindowProcW.restype = C.c_longlong
+u32.CreateWindowExW.restype = W.HWND
+u32.DestroyWindow.argtypes = [W.HWND]
+
 
 class WNDCLASS(C.Structure):
     _fields_ = [("style", C.c_uint), ("lpfnWndProc", WNDPROC),
@@ -68,9 +79,16 @@ def resource_dir():
 
 
 def icon_path():
-    for rel in ("attackshark/web/logo.ico", "attackshark/web/logo.png"):
+    """The tray and window icon - your own copy first.
+
+    Same rule the web artwork follows in `server._custom`: `logo.custom.ico`
+    beside `logo.ico` wins. A public build never carries one, because
+    `build_exe.py` leaves `*.custom.*` behind; a private build does, so the
+    face in the tray matches the face in the page.
+    """
+    for rel in ("attackshark/web/logo.custom.ico", "attackshark/web/logo.ico"):
         p = os.path.join(resource_dir(), *rel.split("/"))
-        if os.path.isfile(p) and p.endswith(".ico"):
+        if os.path.isfile(p):
             return p
     return None
 

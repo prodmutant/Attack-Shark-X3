@@ -5,6 +5,12 @@
 Produces dist/PRODMUTANT X3 Driver.exe - one file, no console, tray icon, with
 the web interface bundled inside. Needs `pip install pyinstaller pillow`.
 
+    python build_exe.py --private
+
+Builds the same thing for yourself, carrying the `.custom.` artwork a release
+is not allowed to carry. It lands under a different name so the two can sit in
+dist/ together and nobody can hand out the wrong one.
+
 The result is deliberately not committed. A build is an output, not a source,
 and a repository that carries both is a repository where nobody can tell which
 one they are looking at: the binary goes out as a release download, the source
@@ -18,8 +24,11 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 NAME = "PRODMUTANT X3 Driver"
+PRIVATE_NAME = NAME + " (mine)"
 ENTRY = os.path.join(ROOT, "launch.py")
-ICON = os.path.join(ROOT, "attackshark", "web", "logo.ico")
+WEB = os.path.join(ROOT, "attackshark", "web")
+ICON = os.path.join(WEB, "logo.ico")
+PRIVATE_ICON = os.path.join(WEB, "logo.custom.ico")
 
 ENTRY_SRC = '''"""Frozen entry point: hand straight to the tray app."""
 import multiprocessing
@@ -33,21 +42,26 @@ if __name__ == "__main__":
 '''
 
 
-def ensure_icon():
-    if os.path.isfile(ICON):
-        return
-    png = os.path.join(ROOT, "attackshark", "web", "logo.png")
+SIZES = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128),
+         (256, 256)]
+
+
+def ensure_icon(ico, png):
+    """Make the .ico from its .png once, and leave it alone after that."""
+    if os.path.isfile(ico):
+        return ico
+    if not os.path.isfile(png):
+        return None
     try:
         from PIL import Image
     except ImportError:
         sys.exit("need Pillow to make the icon: pip install pillow")
-    Image.open(png).convert("RGBA").save(
-        ICON, sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64),
-                     (128, 128), (256, 256)])
-    print(f"made {ICON}")
+    Image.open(png).convert("RGBA").save(ico, sizes=SIZES)
+    print(f"made {ico}")
+    return ico
 
 
-def stage_web(into):
+def stage_web(into, private=False):
     """A copy of the interface with anyone's private artwork left behind.
 
     `--add-data` takes a directory and takes all of it, and `attackshark/web`
@@ -57,29 +71,37 @@ def stage_web(into):
     place this can be fixed, because by the time PyInstaller has the directory
     it is already too late.
     """
+    keep = ["__pycache__"] if private else ["*.custom.*", "__pycache__"]
     dst = os.path.join(into, "attackshark", "web")
-    shutil.copytree(os.path.join(ROOT, "attackshark", "web"), dst,
-                    ignore=shutil.ignore_patterns("*.custom.*", "__pycache__"))
+    shutil.copytree(WEB, dst, ignore=shutil.ignore_patterns(*keep))
     left = sorted(f for f in os.listdir(dst) if ".custom." in f)
-    assert not left, f"private artwork reached the bundle: {left}"
+    if private:
+        print("private build, carrying: " + (", ".join(left) or "nothing"))
+    else:
+        assert not left, f"private artwork reached the bundle: {left}"
     return dst
 
 
 def main():
-    ensure_icon()
+    private = "--private" in sys.argv[1:]
+    name = PRIVATE_NAME if private else NAME
+    icon = ensure_icon(ICON, os.path.join(WEB, "logo.png"))
+    if private:
+        icon = ensure_icon(PRIVATE_ICON,
+                           os.path.join(WEB, "logo.custom.png")) or icon
     with open(ENTRY, "w", encoding="utf-8") as fh:
         fh.write(ENTRY_SRC)
 
     stage = tempfile.mkdtemp(prefix="asx-build-")
-    web = stage_web(stage)
+    web = stage_web(stage, private)
     sep = ";" if os.name == "nt" else ":"
     args = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm", "--clean",
         "--onefile",
         "--windowed",                      # no console window
-        "--name", NAME,
-        "--icon", ICON,
+        "--name", name,
+        "--icon", icon,
         # the interface travels inside the exe, from the staged copy
         "--add-data", f"{web}{sep}attackshark{os.sep}web",
         # ctypes-only project: nothing heavy to pull in
@@ -97,11 +119,11 @@ def main():
     if r.returncode != 0:
         sys.exit(r.returncode)
 
-    exe = os.path.join(ROOT, "dist", NAME + ".exe")
+    exe = os.path.join(ROOT, "dist", name + ".exe")
     if os.path.isfile(exe):
         size = os.path.getsize(exe) / (1024 * 1024)
         print(f"\nbuilt {exe}  ({size:.1f} MB)")
-    for junk in ("build", NAME + ".spec", "launch.py"):
+    for junk in ("build", name + ".spec", "launch.py"):
         p = os.path.join(ROOT, junk)
         shutil.rmtree(p, ignore_errors=True) if os.path.isdir(p) else (
             os.remove(p) if os.path.isfile(p) else None)
