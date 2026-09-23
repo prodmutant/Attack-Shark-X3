@@ -373,7 +373,7 @@ h3.sub{
 
 table.binds{width:100%;border-collapse:collapse}
 .binds td{padding:5px 8px 5px 0;border-top:1px solid var(--line);vertical-align:middle}
-.binds td:first-child{width:26px;color:var(--dim);font-family:var(--mono)}
+.binds td:first-child{width:94px;color:var(--dim);font-family:var(--mono);white-space:nowrap}
 .binds select{
   background:var(--input-bg);border:1px solid var(--line2);color:var(--fg);
   padding:5px 7px;font-family:var(--mono);font-size:12px;min-width:150px;
@@ -426,3 +426,80 @@ table.binds{width:100%;border-collapse:collapse}
 .steps{max-height:min(46vh,380px)}
 .step .x:hover{color:var(--accent-hi)}
 .rec{border-color:var(--accent)!important;color:var(--accent-hi)!important}
+
+/* ---------------------------------------------------------- track editor --
+   Lanes are rows, time runs left to right, a block is a rectangle whose width
+   is its duration. Colour carries the one distinction that matters at a
+   glance - fires once versus repeats - because position and width already say
+   everything else. */
+.trkwrap { border:1px solid var(--line2); background:var(--bg); }
+.trklanes { overflow-x:auto; overflow-y:visible; }
+.trkrow { display:flex; align-items:stretch; border-bottom:1px solid var(--line); }
+.trkrow:last-child { border-bottom:0; }
+.trkrow.ruler { background:var(--panel); }
+.trkhead {
+  flex:0 0 116px; display:flex; align-items:center; justify-content:space-between;
+  gap:6px; padding:0 9px; height:34px; background:var(--panel);
+  border-right:1px solid var(--line2); font:11px/1 var(--mono);
+  color:var(--dim); text-transform:uppercase; letter-spacing:.07em;
+  position:sticky; left:0; z-index:3;
+}
+.trkrow.ruler .trkhead { height:26px; }
+.trklabel { color:var(--fg); }
+.trkx {
+  background:none; border:0; color:var(--dim); cursor:pointer;
+  font:14px/1 var(--mono); padding:2px 3px;
+}
+.trkx:hover { color:var(--accent-hi); }
+.trktrack { position:relative; flex:1 1 auto; height:34px; }
+.trkrow.ruler .trktrack { height:26px; }
+.trkstrip { position:relative; height:100%; min-width:100%; cursor:copy; }
+.trkruler { position:relative; height:26px; }
+.trktick {
+  position:absolute; top:8px; font:10px/1 var(--mono); color:var(--dim);
+  border-left:1px solid var(--line2); padding-left:3px; height:13px;
+}
+.trkgrid {
+  position:absolute; top:0; height:100%; width:1px;
+  background:var(--line); pointer-events:none;
+}
+
+.trkblk {
+  position:absolute; top:5px; height:24px; box-sizing:border-box;
+  background:var(--accent-dim); border:1px solid var(--accent);
+  cursor:grab; overflow:hidden;
+}
+.trkblk:hover { border-color:var(--accent-hi); }
+.trkblk.spam { background:#1d2a14; border-color:var(--ok); }
+/* A tick is a moment, not a span: the block still has a width because it
+   occupies that much of the pass, but the notch happens at its left edge,
+   so that edge is what is drawn heavily. */
+.trkblk.tick { background:transparent; border-left-width:4px; }
+.trkblk.on { outline:2px solid var(--fg); outline-offset:-3px; }
+.trkblklbl {
+  font:10px/24px var(--mono); color:var(--fg); padding-left:5px;
+  pointer-events:none; user-select:none; white-space:nowrap;
+}
+.trkgrip {
+  position:absolute; right:0; top:0; width:6px; height:100%;
+  cursor:ew-resize; background:var(--accent);
+}
+.trkblk.spam .trkgrip { background:var(--ok); }
+.trkempty { padding:22px; text-align:center; color:var(--dim); font:12px/1.5 var(--sans); }
+
+.trkcfg {
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap; min-height:34px;
+  padding:9px 10px; border-top:1px solid var(--line2); background:var(--panel);
+}
+.trktitle {
+  font:11px/1 var(--mono); color:var(--fg); text-transform:uppercase;
+  letter-spacing:.07em; min-width:52px;
+}
+.trkhelp { font:11px/1.4 var(--sans); color:var(--dim); }
+.trkf { display:flex; align-items:center; gap:5px; font:11px/1 var(--sans); color:var(--dim); }
+.trkf .num { width:60px; }
+.trkunit { color:var(--dim); opacity:.7; }
+.trknote { font:11px/1 var(--mono); color:var(--dim); }
+#trkwhat { min-width:150px; max-width:200px; }
+#trkkind { max-width:130px; }
+#macroedit.lanes { width:min(1000px,96vw); }

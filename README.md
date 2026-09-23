@@ -141,6 +141,29 @@ Attack Shark's *keyboard* driver — is rejected outright by this firmware. §8
 gives all four lines of evidence. `macro.py`'s `device_support()` decides per
 macro and the UI shows which target each one uses.
 
+### The scroll wheel
+
+The wheel is in the macro system twice, at both ends of it.
+
+**As output**, a macro can turn it. On the timeline a wheel lane takes two
+kinds of block: a **tick**, one notch at the block's left edge, and a **spam**,
+a notch every *n* ms across the block's width — a wheel spun at an exact speed
+for an exact length of time, which a hand cannot do twice the same way. Each
+event turns one notch by default and up to sixteen, for games that read the
+delta rather than counting events. Up is positive, the sign Windows uses.
+
+**As a trigger**, a macro can be bound to the wheel: `wheel up` and `wheel
+down` sit under the five buttons in the bindings table, and the notch that
+fires a macro is swallowed the way a bound click is, unless *also scroll as
+normal* is ticked. A notch has no release, so `hold` repeat means *while it
+keeps turning* — the macro runs, every further notch pushes the deadline out,
+and it stops 300 ms after the wheel goes still. One tick, one pass; keep
+spinning, it keeps going.
+
+Neither end is storable on the mouse: the firmware's macro event is two bytes,
+`[flags, HID usage]`, with nowhere to put a direction or a delta. Wheel macros
+run from this app.
+
 Host movement goes out through `SendInput`, which Windows marks as injected: a
 low-level hook sees `LLMHF_INJECTED`, and Raw Input reports a null device handle
 instead of a device. No amount of realism in the trajectory changes that,
@@ -159,7 +182,12 @@ flag, and `mouclass` attributes the report to the X3.
 It also owns the physical side: a button bound to a macro is swallowed inside
 the driver, so no application sees the click at all, and triggers arrive through
 a pending IOCTL that completes before `mouclass` has seen them. The low-level
-mouse hook is gone when the driver is loaded.
+mouse hook is gone when the driver is loaded. Interface 1.1 adds the wheel to
+that: a notch is one flag and a signed delta rather than a transition per
+direction, so withholding `wheel up` while `wheel down` still scrolls is a
+decision the filter has to make per report, and it has a field of its own
+(`SuppressWheel`). A 1.0 filter takes the request, ignores it, and the app
+says so rather than claiming the wheel is bound.
 
 ```
 python tools/build_driver.py        # build, catalogue, test-sign

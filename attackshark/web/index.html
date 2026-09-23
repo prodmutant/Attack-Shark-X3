@@ -294,8 +294,32 @@
       <label>Speed<input id="mspeed" type="number" min="0.1" max="10" step="0.1" class="num"></label>
     </div>
 
-    <div class="stephead"><span>#</span><span>Step</span><span>Detail</span><span></span></div>
-    <div class="steps" id="msteps"></div>
+    <div id="trksection">
+      <div class="row addbar">
+        <label>Add lane<select id="trkkind" class="chord">
+          <option value="key">Key</option>
+          <option value="mouse">Mouse button</option>
+          <option value="wheel">Scroll wheel</option>
+          <option value="macro">Macro</option>
+        </select></label>
+        <select id="trkwhat" class="chord"></select>
+        <button type="button" class="btn" id="trkadd">Add</button>
+        <span class="sp"></span>
+        <label id="trkspanwrap" title="how long one pass lasts before it repeats; it adds no input, only the gap">Pass<input id="trkspan" type="number" min="0" max="60000" class="num"><span class="trkunit">ms</span></label>
+        <button type="button" class="btn" id="trkout">-</button>
+        <button type="button" class="btn" id="trkin">+</button>
+        <span class="hint" id="trkinfo"></span>
+      </div>
+      <div class="trkwrap">
+        <div class="trklanes" id="trklanes"></div>
+        <div class="trkcfg" id="trkcfg"></div>
+      </div>
+    </div>
+
+    <div id="stepsection">
+      <div class="stephead"><span>#</span><span>Step</span><span>Detail</span><span></span></div>
+      <div class="steps" id="msteps"></div>
+    </div>
 
     <div class="row addbar">
       <button type="button" class="btn" data-add="key">Key</button>
@@ -303,7 +327,9 @@
       <button type="button" class="btn" data-add="move">Move</button>
       <button type="button" class="btn" data-add="wheel">Wheel</button>
       <button type="button" class="btn" data-add="delay">Delay</button>
+      <button type="button" class="btn" data-add="call">Macro</button>
       <span class="sp"></span>
+      <button type="button" class="btn" id="mtolanes">Use lanes</button>
       <button type="button" class="btn" id="mrec">Record</button>
       <span class="hint" id="mstatus"></span>
     </div>
@@ -319,6 +345,7 @@
 
 <script src="fx.js"></script>
 <script src="app.js"></script>
+<script src="track.js"></script>
 <script src="macros.js"></script>
 </body>
 </html>

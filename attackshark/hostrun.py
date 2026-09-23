@@ -27,12 +27,35 @@ submitted as one batch and clocked out below the scheduler.
 
 A hook callback must return promptly or Windows drops the hook, so playback
 always happens on a worker thread, never inside the callback.
+
+**Why the sendinput path can make a game stutter.** A low-level mouse hook is
+not a passive observer: every mouse event on the machine is held until the
+callback returns, for every application, the foreground game included. When
+that callback is Python it must first take the GIL, so the stall is whatever
+the interpreter's switch interval is - 5 ms by default, and multiplied by the
+number of runnable Python threads. Measured on this machine at a 1000 Hz
+report rate: 0.036 ms median with nothing else running, 4.98 ms against one
+busy thread, 14.99 ms (120 ms peak) against three. That is the whole defect;
+the hook body itself is already trivial.
+
+**The wheel is both an output and a trigger.** A macro can turn it, and a
+macro can be bound to it. A notch is not a button: it has no release, so
+`hold` repeat means "while it keeps turning" and is ended by a quiet period
+rather than by an up event (`_trigger_wheel`). Swallowing a bound notch is
+easy on the hook path and needs interface 1.1 on the driver path, because the
+direction lives in the sign of a delta rather than in a flag.
+
+Two things keep it down, both applied in `start()`: a much shorter switch
+interval so the GIL reaches the hook thread quickly, and not installing the
+mouse hook at all when no macro is bound to a button. The kernel backend
+avoids the question entirely by never installing one.
 """
 from __future__ import annotations
 
 import ctypes as C
 from ctypes import wintypes as W
 import random
+import sys
 import threading
 import time
 
@@ -47,6 +70,10 @@ except Exception:                       # pragma: no cover - non-Windows import
 
 u32 = C.WinDLL("user32", use_last_error=True)
 k32 = C.WinDLL("kernel32", use_last_error=True)
+try:
+    wmm = C.WinDLL("winmm")
+except Exception:                       # pragma: no cover - non-Windows
+    wmm = None
 
 WH_MOUSE_LL, WH_KEYBOARD_LL = 14, 13
 WM_MOUSEMOVE = 0x0200
@@ -54,9 +81,23 @@ WM_LBUTTONDOWN, WM_LBUTTONUP = 0x0201, 0x0202
 WM_RBUTTONDOWN, WM_RBUTTONUP = 0x0204, 0x0205
 WM_MBUTTONDOWN, WM_MBUTTONUP = 0x0207, 0x0208
 WM_XBUTTONDOWN, WM_XBUTTONUP = 0x020B, 0x020C
+WM_MOUSEWHEEL = 0x020A
 WM_KEYDOWN, WM_SYSKEYDOWN = 0x0100, 0x0104
 LLMHF_INJECTED = 0x00000001
 VK_ESCAPE = 0x1B
+
+#: A hook callback that waits on the GIL holds up every mouse event on the
+#: machine. 0.5 ms costs a little throughput in the interpreter and takes the
+#: worst case from tens of milliseconds to a fraction of one.
+HOOK_SWITCH_INTERVAL = 0.0005
+THREAD_PRIORITY_HIGHEST = 2
+
+#: Windows' default timer granularity is 15.6 ms, so a 7 ms delay between two
+#: macro steps can become 15.6 ms and the cadence collapses. Games usually
+#: raise the resolution themselves, which means a macro tested with one open
+#: behaves differently with it closed - ask for 1 ms ourselves so the timing
+#: is ours and not a side effect of whatever else is running.
+TIMER_RESOLUTION_MS = 1
 
 INPUT_MOUSE, INPUT_KEYBOARD = 0, 1
 MOUSEEVENTF_MOVE = 0x0001
@@ -148,6 +189,21 @@ TRIGGERS = {
     5: (WM_XBUTTONDOWN, WM_XBUTTONUP, XBUTTON1),   # "backward"
 }
 
+#: The wheel binds like a button, numbered past the physical five. It is not
+#: one: a notch is a single event with a direction and no release, so each
+#: direction is its own trigger and there is nothing to wait for the end of.
+WHEEL_UP, WHEEL_DOWN = 6, 7
+WHEEL_TRIGGERS = {WHEEL_UP: "up", WHEEL_DOWN: "down"}
+BINDABLE = tuple(sorted(TRIGGERS)) + tuple(sorted(WHEEL_TRIGGERS))
+TRIGGER_NAMES = {1: "left", 2: "right", 3: "middle", 4: "forward", 5: "back",
+                 WHEEL_UP: "wheel up", WHEEL_DOWN: "wheel down"}
+
+#: `hold` repeat on a wheel trigger means "while it keeps turning", and a
+#: wheel never says it has stopped. This is how long a macro keeps running
+#: after the last notch - long enough that the gap between two flicks of the
+#: same spin does not end it, short enough that it stops when you do.
+WHEEL_QUIET_MS = 300
+
 
 # ------------------------------------------------------------ synthesis ----
 def _send(*inputs):
@@ -194,6 +250,30 @@ def play_step(step, speed=1.0, stop=None):
         _send(_mouse(MOUSEEVENTF_WHEEL, data=step["delta"] * 120))
 
 
+#: How far behind schedule a run may fall before catching up is abandoned and
+#: the clock is simply restarted. Anything past this and the machine stalled
+#: hard enough that firing the backlog as fast as possible would be worse than
+#: the gap itself.
+RESYNC_S = 0.050
+
+
+def _hold(stop, due, cap=None):
+    """Wait until `due` (a perf_counter stamp). True if the macro was stopped.
+
+    Late wake-ups are not compounded: when the deadline has already passed the
+    step runs immediately, and only a stall worse than RESYNC_S abandons the
+    original clock instead of trying to make the time back.
+    """
+    slack = due - time.perf_counter()
+    if cap is not None and slack > cap:
+        slack = cap
+    if slack > 0:
+        return stop.wait(slack)
+    if slack < -RESYNC_S:
+        return stop.wait(0)          # hopeless backlog: caller resyncs below
+    return stop.is_set()
+
+
 def _delay_us(step, speed):
     ms = step["ms"]
     if step.get("jitter"):
@@ -234,68 +314,129 @@ def build_plan(steps, speed=1.0):
 _DRIVER_STEPS = ("mouse", "move", "wheel", "delay")
 
 
-def play(macro, stop: threading.Event, driver=None):
+def play(macro, stop: threading.Event, driver=None, registry=None):
     """Run one macro until it finishes or `stop` is set.
 
-    With a driver, consecutive mouse steps are compiled into a single submit
-    and this thread only waits out their duration. A keyboard step ends the
+    The macro is compiled to a timeline first, so this loop only ever does one
+    thing: wait until an event's moment, then emit it. Overlapping holds and
+    simultaneous presses need no special handling - they are simply events
+    that share, or straddle, an offset.
+
+    Every offset is measured from one base stamp per pass rather than from the
+    previous event, for the reason in the comment below: relative waits
+    accumulate their overshoot and walk the whole pattern out of phase.
+
+    With a driver, consecutive mouse events are compiled into a single submit
+    and this thread only waits out their duration. A keyboard event ends the
     batch, because a mouse filter cannot type.
     """
-    steps = macro["steps"]
-    speed = macro["speed"] or 1.0
     mode, count = macro["repeat"], macro["count"]
     passes = 1 if mode == "once" else (count if mode == "count" else 1 << 30)
 
+    # Sleeping for the length of each delay in turn is not the same as running
+    # to a schedule. Every wait returns a little late - a quarter of a
+    # millisecond here - and sleeping relative amounts adds those overshoots
+    # up: measured at 0.52 ms per cycle on a two-delay loop, which is 126 ms
+    # of slip over four seconds, eight whole frames. The pattern slides out of
+    # phase with the game's input sampling while every individual delay still
+    # looks correct. So keep an absolute deadline and wait until it, letting a
+    # late wake-up be absorbed by the next step instead of pushed into it.
+    jitter = M.has_jitter(macro)
+    events, span = M.compile_timeline(macro, registry)
+    steps = M.timeline_steps(events)
+
+    held = set()                         # what is down right now, exactly
+    base = time.perf_counter()
     done = 0
     while done < passes and not stop.is_set():
-        i = 0
-        while i < len(steps) and not stop.is_set():
+        if jitter and done:                  # re-roll the jitter every pass
+            events, span = M.compile_timeline(macro, registry)
+            steps = M.timeline_steps(events)
 
-            if driver is not None and steps[i]["t"] in _DRIVER_STEPS:
-                j = i
-                while j < len(steps) and steps[j]["t"] in _DRIVER_STEPS:
-                    j += 1
-                plan, seconds = build_plan(steps[i:j], speed)
-                if plan:
-                    try:
-                        driver.submit(plan)
-                    except kdriver.DriverError:
-                        driver = None           # fall back for the rest of the run
-                        continue
-                    # the kernel is clocking it; just wait it out, interruptibly
-                    if stop.wait(seconds + 0.002):
-                        break
-                i = j
-                continue
-
-            s = steps[i]
-            i += 1
-            if s["t"] == "delay":
-                if stop.wait(_delay_us(s, speed) / 1_000_000.0):
+        if driver is not None:
+            driver = _run_batched(steps, stop, driver, base, held)
+        else:
+            for off, ev in events:
+                if _hold(stop, base + off / 1000.0):
                     break
-            else:
-                play_step(s, speed, stop)
+                play_step(ev, 1.0, stop)      # speed is already in the offsets
+                _track(held, ev)
+
+        base += span / 1000.0
+        if time.perf_counter() - base > RESYNC_S:
+            base = time.perf_counter()        # fell hopelessly behind; restart
         done += 1
 
-    _release_all(macro, driver)
+    _release_all(held, driver)
 
 
-def _release_all(macro, driver=None):
-    """Never leave a key or button stuck down if a macro is cut short."""
+def _run_batched(steps, stop, driver, base, held):
+    """Driver path: hand runs of mouse events to the kernel, type the rest."""
+    due = base
+    i = 0
+    while i < len(steps) and not stop.is_set():
+        if driver is not None and steps[i]["t"] in _DRIVER_STEPS:
+            j = i
+            while j < len(steps) and steps[j]["t"] in _DRIVER_STEPS:
+                j += 1
+            plan, seconds = build_plan(steps[i:j], 1.0)
+            if plan:
+                try:
+                    driver.submit(plan)
+                except kdriver.DriverError:
+                    driver = None             # fall back for the rest of the run
+                    continue
+                due += seconds
+                if _hold(stop, due, seconds + 0.002):
+                    break
+            i = j
+            continue
+        s = steps[i]
+        i += 1
+        if s["t"] == "delay":
+            due += s["ms"] / 1000.0
+            if _hold(stop, due):
+                break
+        else:
+            play_step(s, 1.0, stop)
+            _track(held, s)
+    return driver
+
+
+def _track(held, step):
+    """Remember what is actually down, so only that has to be let go of."""
+    if step["t"] == "key":
+        key = ("key", step["key"])
+    elif step["t"] == "mouse":
+        key = ("mouse", step["button"])
+    else:
+        return
+    held.add(key) if step["down"] else held.discard(key)
+
+
+def _release_all(held, driver=None):
+    """Never leave a key or button stuck down if a macro is cut short.
+
+    Only what is still down gets a release. Firing one for every key the macro
+    ever touched would work too - a release against an already-released key is
+    ignored - but it puts events on the wire that the macro did not ask for,
+    and anything watching the stream then has to know to discount them.
+    """
     if driver is not None:
         try:
             driver.stop()           # the driver releases what it emitted itself
         except Exception:
             pass
-    for s in macro["steps"]:
+    for kind, name in sorted(held):
         try:
-            if s["t"] == "key" and s["down"]:
-                _send(_key(P.HID_KEYS[s["key"]], False))
-            elif s["t"] == "mouse" and s["down"] and driver is None:
-                _, up, data = _BTN_FLAGS[s["button"]]
+            if kind == "key":
+                _send(_key(P.HID_KEYS[name], False))
+            elif driver is None:
+                _, up, data = _BTN_FLAGS[name]
                 _send(_mouse(up, data=data))
         except Exception:
             pass
+    held.clear()
 
 
 # --------------------------------------------------------------- engine ----
@@ -304,8 +445,11 @@ class Engine:
 
     def __init__(self):
         self.bindings = {}          # button number -> macro dict
+        self.registry = {}          # macro id -> macro, for `call` steps
         self.passthrough = {}       # button -> let the real click through too
         self._running = {}          # button -> (thread, stop event)
+        self._wheel_until = {}      # wheel trigger -> when its spin goes quiet
+        self._wheel_watch = {}      # wheel trigger -> the thread watching for it
         self._hook = None
         self._kbhook = None
         self._thread = None
@@ -318,6 +462,9 @@ class Engine:
         self.driver_note = None
         self._reader = None
         self._stopping = False
+        self.idle_note = None
+        self._switch_was = None
+        self._timer_raised = False
 
     # ---------------------------------------------------------- lifecycle --
     @property
@@ -357,6 +504,21 @@ class Engine:
         self._stopping = False
         self._open_driver()
 
+        # Nothing bound means nothing to watch for, and a mouse hook that
+        # exists only to call CallNextHookEx still taxes every event in the
+        # system. The driver backend has no hook, so it may start regardless.
+        if self.driver is None and not self.bindings:
+            self.idle_note = ("no macro is bound to a button, so no mouse hook "
+                              "is installed")
+            return True
+        self.idle_note = None
+
+        if self.driver is None and self._switch_was is None:
+            self._switch_was = sys.getswitchinterval()
+            sys.setswitchinterval(HOOK_SWITCH_INTERVAL)
+        if wmm is not None and not self._timer_raised:
+            self._timer_raised = wmm.timeBeginPeriod(TIMER_RESOLUTION_MS) == 0
+
         self._thread = threading.Thread(target=self._pump, daemon=True)
         self._thread.start()
         for _ in range(50):
@@ -383,6 +545,12 @@ class Engine:
             self.driver = None
         if self._tid:
             u32.PostThreadMessageW(self._tid, 0x0012, 0, 0)   # WM_QUIT
+        if self._switch_was is not None:
+            sys.setswitchinterval(self._switch_was)
+            self._switch_was = None
+        if self._timer_raised and wmm is not None:
+            wmm.timeEndPeriod(TIMER_RESOLUTION_MS)
+            self._timer_raised = False
         self._thread = None
         self._reader = None
 
@@ -394,6 +562,12 @@ class Engine:
         triggers come out of the kernel instead.
         """
         self._tid = k32.GetCurrentThreadId()
+        # Once this thread has the GIL it should run immediately: it is
+        # holding up the whole machine's input while it does.
+        try:
+            k32.SetThreadPriority(k32.GetCurrentThread(), THREAD_PRIORITY_HIGHEST)
+        except Exception:
+            pass
         self._kbhook = u32.SetWindowsHookExW(WH_KEYBOARD_LL, self._kproc, None, 0)
         if self.driver is None:
             self._hook = u32.SetWindowsHookExW(WH_MOUSE_LL, self._mproc, None, 0)
@@ -421,11 +595,25 @@ class Engine:
         if self.driver is None:
             return
         with self._lock:
-            btns = [b for b in self.bindings if not self.passthrough.get(b)]
+            bound = [b for b in self.bindings if not self.passthrough.get(b)]
+        btns = [b for b in bound if b in TRIGGERS]
+        wheel = [WHEEL_TRIGGERS[b] for b in bound if b in WHEEL_TRIGGERS]
         try:
-            self.driver.suppress(btns, report_events=True)
+            self.driver.suppress(btns, wheel=wheel, report_events=True)
         except kdriver.DriverError as e:
             self.last_error = str(e)
+        if wheel and self.driver is not None:
+            # Swallowing a notch needs the field added in interface 1.1. An
+            # older filter takes the request, ignores it, and scrolls - so
+            # say so rather than letting the page claim the wheel is bound.
+            try:
+                st = self.driver.status()
+            except kdriver.DriverError:
+                return
+            if not st.get("wheel_suppression"):
+                self.driver_note = ("this filter build cannot withhold a "
+                                    "wheel notch - the page still scrolls "
+                                    "while a wheel macro runs")
 
     def _pump_events(self):
         """Physical reports straight from the filter, ahead of mouclass."""
@@ -443,6 +631,14 @@ class Engine:
                     continue
                 with self._lock:
                     bound = dict(self.bindings)
+                if flags & kdriver.WHEEL:
+                    # The report has one wheel bit and a signed delta; the
+                    # sign is the direction, and the magnitude is how many
+                    # notches that one report carried.
+                    btn = WHEEL_UP if ev["data"] > 0 else WHEEL_DOWN
+                    macro = bound.get(btn)
+                    if macro is not None:
+                        self._trigger_wheel(btn, macro)
                 for btn, (down, up) in kdriver.BUTTON_FLAGS.items():
                     macro = bound.get(btn)
                     if macro is None:
@@ -476,6 +672,9 @@ class Engine:
         if ms.flags & LLMHF_INJECTED:
             return u32.CallNextHookEx(None, code, wparam, lparam)
 
+        if wparam == WM_MOUSEWHEEL:
+            return self._on_wheel(ms, code, wparam, lparam)
+
         btn, is_down = self._which_button(wparam, ms)
         if btn is None or btn not in self.bindings:
             return u32.CallNextHookEx(None, code, wparam, lparam)
@@ -486,6 +685,24 @@ class Engine:
         elif macro["repeat"] == "hold":
             self._stop_button(btn)
         return 1        # swallow the physical click; the macro decides what happens
+
+    def _on_wheel(self, ms, code, wparam, lparam):
+        """A notch: high word of mouseData is a signed delta, 120 per notch."""
+        delta = C.c_short((ms.mouseData >> 16) & 0xFFFF).value
+        if not delta:
+            return u32.CallNextHookEx(None, code, wparam, lparam)
+        btn = WHEEL_UP if delta > 0 else WHEEL_DOWN
+        macro = self.bindings.get(btn)
+        if macro is None:
+            return u32.CallNextHookEx(None, code, wparam, lparam)
+        self._trigger_wheel(btn, macro)
+        if self.passthrough.get(btn):
+            # Passthrough on the wheel is simply not eating the notch. A
+            # button has a press and a release to replay in the right order;
+            # a notch is one event, and letting the real one carry on up the
+            # chain is better than sending a copy of it afterwards.
+            return u32.CallNextHookEx(None, code, wparam, lparam)
+        return 1
 
     # ------------------------------------------------------------ playback --
     def _trigger(self, btn, macro):
@@ -502,16 +719,62 @@ class Engine:
             self._running[btn] = (t, stop)
             t.start()
 
+    def _trigger_wheel(self, btn, macro):
+        """One notch of the wheel, in whichever repeat mode is bound.
+
+        `once`, `count` and `toggle` need nothing special: a notch is a press
+        with no release to wait for, so one tick plays one pass - spin faster
+        than the macro is long and the extra notches land while it is already
+        running, where they are ignored exactly as a re-press would be.
+
+        `hold` is the one that has to be built, because the wheel never says
+        it has stopped. The first notch starts the macro and every notch after
+        it pushes the deadline out; a watcher stops the macro once the wheel
+        has been still for WHEEL_QUIET_MS. So the bind reads the way it sounds:
+        one tick, one pass - keep spinning, it keeps going.
+        """
+        if macro["repeat"] != "hold":
+            self._trigger(btn, macro)
+            return
+        with self._lock:
+            self._wheel_until[btn] = time.perf_counter() + WHEEL_QUIET_MS / 1000.0
+            spinning = btn in self._wheel_watch
+        if spinning:
+            return                   # the refreshed deadline is the whole job
+        self._trigger(btn, macro)
+        watch = threading.Thread(target=self._wheel_quiet, args=(btn,),
+                                 daemon=True)
+        with self._lock:
+            self._wheel_watch[btn] = watch
+        watch.start()
+
+    def _wheel_quiet(self, btn):
+        """Stop a held wheel macro once the notches stop arriving."""
+        try:
+            while not self._stopping:
+                with self._lock:
+                    until = self._wheel_until.get(btn, 0.0)
+                slack = until - time.perf_counter()
+                if slack <= 0:
+                    break
+                time.sleep(min(slack, 0.05))
+        finally:
+            with self._lock:
+                self._wheel_watch.pop(btn, None)
+            self._stop_button(btn)
+
     def _run(self, btn, macro, stop):
         try:
             if self.passthrough.get(btn) and self.driver is None:
                 # SendInput path: the hook ate the click, so replay it first.
                 # On the kernel path the button is simply never suppressed.
-                down, up, data = _BTN_FLAGS[
-                    {1: "left", 2: "right", 3: "middle", 4: "x2", 5: "x1"}[btn]]
-                _send(_mouse(down, data=data))
-                _send(_mouse(up, data=data))
-            play(macro, stop, self.driver)
+                name = {1: "left", 2: "right", 3: "middle",
+                        4: "x2", 5: "x1"}.get(btn)
+                if name:            # the wheel is let through, never replayed
+                    down, up, data = _BTN_FLAGS[name]
+                    _send(_mouse(down, data=data))
+                    _send(_mouse(up, data=data))
+            play(macro, stop, self.driver, self.registry)
         finally:
             with self._lock:
                 if self._running.get(btn, (None, None))[1] is stop:
@@ -550,6 +813,7 @@ class Engine:
             "backend": self.backend,
             "driver": None,
             "driver_note": self.driver_note,
+            "idle_note": self.idle_note,
             "bindings": {str(b): {"macro": m["name"], "id": m["id"],
                                   "repeat": m["repeat"],
                                   "passthrough": bool(self.passthrough.get(b))}

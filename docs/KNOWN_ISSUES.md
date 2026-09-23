@@ -262,6 +262,19 @@ locally signed package will never win the ranking contest.
   them on upload. Device macros therefore run at the firmware's own rate.
 - **Mouse buttons inside a device macro are untested.** The vendor editor does
   not offer them, so the event encoding was never sampled.
+- **The wheel is a host trigger only, and the kernel half of it has never
+  run.** Binding a macro to `wheel up` / `wheel down` works on the `SendInput`
+  backend, where the low-level hook sees `WM_MOUSEWHEEL` and swallows the notch
+  the way it swallows a bound click. The filter-driver path is written and
+  pinned by `tests/test_kdriver.py`, but like everything else about that driver
+  (§2) it has never been observed running: `SuppressWheel` is a design claim
+  until someone loads the filter and scrolls. With a 1.0 filter loaded the
+  trigger still fires and the page still scrolls, which the app says out loud.
+- **The mouse's own wheel actions are not remapped.** Button slots 16 and 17
+  hold the wheel defaults (`0x0A` down, `0x09` up), so in principle a *device*
+  macro could be bound to a notch and run with nothing installed. Neither slot
+  has been written to, and a wrong write there costs you the scroll wheel until
+  the defaults are restored, so the wheel is driven from the host instead.
 - **Angle snap, ripple control, motion sync and lift-off distance are written
   but not independently verified.** The bytes are confirmed against captures —
   the mouse receives exactly what the vendor tool sends — but no measurement was

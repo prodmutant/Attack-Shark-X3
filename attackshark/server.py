@@ -23,7 +23,7 @@ from . import hostrun
 from . import macro as M
 from . import protocol as P
 from .device import AttackSharkX3, DeviceNotFound
-from .hostrun import ENGINE, TRIGGERS
+from .hostrun import BINDABLE, ENGINE, TRIGGER_NAMES
 
 def _web_root():
     """PyInstaller unpacks bundled data to _MEIPASS; source runs in place."""
@@ -54,9 +54,13 @@ def _catalog():
                 "slots": P.DPI_SLOTS},
         "logo_round": os.path.exists(os.path.join(WEB_ROOT, "logo.round")),
         "macro": {
-            "buttons": sorted(TRIGGERS),
+            "buttons": list(BINDABLE),
+            "button_names": {str(b): TRIGGER_NAMES[b] for b in BINDABLE},
             "step_types": ["key", "mouse", "move", "wheel", "delay"],
             "mouse_buttons": list(M.BUTTONS),
+            "lane_kinds": list(M.LANE_KINDS),
+            "wheel_dirs": list(M.WHEEL_DIRS),
+            "max_notches": M.MAX_NOTCHES,
             "repeat_modes": list(M.REPEAT_MODES),
             "max_steps": M.MAX_STEPS,
         },
@@ -257,6 +261,7 @@ def _sync_engine(mouse):
         except M.MacroError:
             continue
         by_id[mac["id"]] = mac
+    ENGINE.registry = dict(by_id)        # what `call` steps resolve against
     ENGINE.bindings.clear()
     ENGINE.passthrough.clear()
     for btn, bind in (mouse.state.get("macro_bindings") or {}).items():
@@ -264,6 +269,11 @@ def _sync_engine(mouse):
         if mac:
             ENGINE.bind(int(btn), mac, bool(bind.get("passthrough")))
     if mouse.state.get("engine_on"):
+        # Unbinding the last macro has to take the hook down again, and
+        # start() will not do it from the inside: it sees a live thread and
+        # returns. Drop it first, then let start() decide what is still needed.
+        if ENGINE.active and not ENGINE.bindings and ENGINE.driver is None:
+            ENGINE.stop()
         ENGINE.start()
     else:
         ENGINE.stop()
@@ -294,7 +304,11 @@ def macro_delete(payload):
 
 
 def macro_bind(payload):
-    btn = str(int(payload.get("button")))
+    button = int(payload.get("button"))
+    if button not in BINDABLE:
+        raise ValueError(f"nothing to bind to: {button} is not one of "
+                         f"{list(BINDABLE)}")
+    btn = str(button)
     mouse = AttackSharkX3()
     binds = dict(mouse.state.get("macro_bindings") or {})
     if payload.get("id"):
@@ -340,7 +354,7 @@ def _preview(mac, stop):
         except hostrun.kdriver.DriverError:
             drv = None
     try:
-        hostrun.play(mac, stop, drv)
+        hostrun.play(mac, stop, drv, ENGINE.registry)
     finally:
         if own is not None:
             own.close()
