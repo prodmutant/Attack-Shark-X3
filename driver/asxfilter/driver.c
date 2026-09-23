@@ -231,6 +231,7 @@ AsxResetConfig(VOID)
     g_Asx.Config.SuppressButtons = 0;
     g_Asx.Config.SuppressMove = 0;
     g_Asx.Config.ReportEvents = 0;
+    g_Asx.Config.SuppressWheel = 0;
 }
 
 // ----------------------------------------------------- control device ----
@@ -324,6 +325,7 @@ AsxEvtControlDeviceControl(
         st->Capacity = ASX_QUEUE_CAPACITY;
         st->SuppressButtons = g_Asx.Config.SuppressButtons;
         st->SuppressMove = g_Asx.Config.SuppressMove;
+        st->SuppressWheel = g_Asx.Config.SuppressWheel;
         st->StepsEmitted = g_Asx.StepsEmitted;
         st->PhysicalReports = g_Asx.PhysicalReports;
         st->Dropped = g_Asx.Dropped;
@@ -375,11 +377,11 @@ AsxEvtControlDeviceControl(
 
         ASX_FILTER_CFG *cfg;
 
-        if (InputBufferLength < sizeof(ASX_FILTER_CFG)) {
+        if (InputBufferLength < ASX_FILTER_CFG_V1_SIZE) {
             status = STATUS_BUFFER_TOO_SMALL;
             break;
         }
-        status = WdfRequestRetrieveInputBuffer(Request, sizeof(ASX_FILTER_CFG), &in, &len);
+        status = WdfRequestRetrieveInputBuffer(Request, ASX_FILTER_CFG_V1_SIZE, &in, &len);
         if (!NT_SUCCESS(status)) {
             break;
         }
@@ -388,6 +390,14 @@ AsxEvtControlDeviceControl(
         g_Asx.Config.SuppressButtons = cfg->SuppressButtons & ASX_ALL_BUTTONS;
         g_Asx.Config.SuppressMove = cfg->SuppressMove;
         g_Asx.Config.ReportEvents = cfg->ReportEvents;
+        //
+        // A client built against 1.0 sends the shorter structure and never
+        // means to touch the wheel, so the field is only read when it is
+        // actually there.
+        //
+        g_Asx.Config.SuppressWheel =
+            (InputBufferLength >= sizeof(ASX_FILTER_CFG))
+                ? (cfg->SuppressWheel & ASX_SUPPRESS_WHEEL_ALL) : 0UL;
 
         status = STATUS_SUCCESS;
         break;

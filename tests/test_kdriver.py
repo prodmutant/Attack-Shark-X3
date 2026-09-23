@@ -57,6 +57,10 @@ def test_constants(d):
         ("SUBMIT_REPLACE", "ASX_SUBMIT_REPLACE"),
         ("SUBMIT_RELEASE", "ASX_SUBMIT_RELEASE"),
         ("MAX_STEPS_PER_SUBMIT", "ASX_MAX_STEPS_PER_SUBMIT"),
+        # The wheel is suppressed by direction rather than by transition, so
+        # these are their own field's values and not button flags.
+        ("WHEEL_UP", "ASX_SUPPRESS_WHEEL_UP"),
+        ("WHEEL_DOWN", "ASX_SUPPRESS_WHEEL_DOWN"),
     ]
     for py, c in pairs:
         if c not in d:
@@ -65,7 +69,13 @@ def test_constants(d):
         check(py, getattr(kdriver, py), d[c])
 
     check("_TYPE", kdriver._TYPE, d.get("ASX_DEVICE_TYPE"))
-    print(f"  {len(pairs) + 1} constants match the C header")
+    # The binding says which interface it is written against; the header says
+    # which one it defines. A client newer than the driver is handled at
+    # runtime, but these two are one commit and must never disagree.
+    ver = d.get("ASX_INTERFACE_VERSION", 0)
+    check("INTERFACE_VERSION", kdriver.INTERFACE_VERSION,
+          (ver >> 16, ver & 0xFFFF))
+    print(f"  {len(pairs) + 2} constants match the C header")
 
 
 def test_ioctls():
@@ -90,8 +100,10 @@ def test_layout():
     sizes = {
         "STEP": 16,          # DWORD + 2*LONG + USHORT + SHORT
         "EVENT": 24,         # ULONG64 + USHORT + SHORT + 2*LONG + DWORD
-        "FILTER_CFG": 12,    # 3 * DWORD
-        "STATUS": 56,        # 8 * DWORD + 3 * ULONG64
+        "FILTER_CFG": 16,    # 4 * DWORD, the fourth added in interface 1.1
+        # 8 * DWORD + 3 * ULONG64 + the 1.1 DWORD, which is 60 bytes padded
+        # out to the structure's 8-byte alignment.
+        "STATUS": 64,
     }
     for name, want in sizes.items():
         check(f"sizeof({name})", ctypes.sizeof(getattr(kdriver, name)), want)
@@ -101,7 +113,11 @@ def test_layout():
                ("STEP", "Buttons", 12), ("STEP", "Data", 14),
                ("EVENT", "Time", 0), ("EVENT", "Buttons", 8),
                ("EVENT", "Dx", 12), ("EVENT", "Dy", 16), ("EVENT", "Suppressed", 20),
-               ("STATUS", "StepsEmitted", 32)]
+               ("STATUS", "StepsEmitted", 32),
+               # Appended, never inserted: the 1.0 layout has to stay a prefix
+               # of this one, or a 1.0 filter's reply is read as nonsense.
+               ("STATUS", "SuppressWheel", 56),
+               ("FILTER_CFG", "SuppressWheel", 12)]
     for struct, field, want in offsets:
         got = getattr(getattr(kdriver, struct), field).offset
         check(f"{struct}.{field} offset", got, want)

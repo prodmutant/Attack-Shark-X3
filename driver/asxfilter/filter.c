@@ -163,7 +163,8 @@ AsxServiceCallback(
     //
     cfg = g_Asx.Config;
 
-    if (cfg.SuppressButtons == 0 && cfg.SuppressMove == 0 && cfg.ReportEvents == 0) {
+    if (cfg.SuppressButtons == 0 && cfg.SuppressMove == 0 &&
+        cfg.SuppressWheel == 0 && cfg.ReportEvents == 0) {
         ctx->UnitId = InputDataStart->UnitId;
         ((PSERVICE_CALLBACK_ROUTINE)ctx->Upper.ClassService)(
             ctx->Upper.ClassDeviceObject, InputDataStart, InputDataEnd, InputDataConsumed);
@@ -194,6 +195,24 @@ AsxServiceCallback(
                 d.ButtonFlags &= (USHORT)~(cfg.SuppressButtons & 0xFFFFU);
                 if ((original & (ASX_WHEEL | ASX_HWHEEL)) != 0 &&
                     (d.ButtonFlags & (ASX_WHEEL | ASX_HWHEEL)) == 0) {
+                    d.ButtonData = 0;
+                }
+            }
+
+            //
+            // The wheel, one direction at a time. Which way it turned is the
+            // sign of ButtonData, so the test is on the delta and not on the
+            // flag - and a report that carries movement as well as a notch
+            // keeps its movement: only the wheel is taken out of it.
+            //
+            if (cfg.SuppressWheel != 0 && (d.ButtonFlags & ASX_WHEEL) != 0) {
+
+                SHORT delta = (SHORT)d.ButtonData;
+                ULONG dir = (delta > 0) ? ASX_SUPPRESS_WHEEL_UP
+                          : (delta < 0) ? ASX_SUPPRESS_WHEEL_DOWN : 0UL;
+
+                if (dir != 0 && (cfg.SuppressWheel & dir) != 0) {
+                    d.ButtonFlags &= (USHORT)~ASX_WHEEL;
                     d.ButtonData = 0;
                 }
             }

@@ -151,6 +151,20 @@ ever sees the click — there is nothing to notice it and nothing to eat it afte
 the fact, which is what a low-level hook is reduced to. Movement can be
 suppressed the same way.
 
+The wheel cannot, and that is why it has a field of its own. A notch is a
+single `ButtonFlags` bit with a signed `ButtonData`, not a transition per
+direction, so "swallow wheel up and leave wheel down alone" is not expressible
+as a mask — the direction is only known once the report is in hand.
+`SuppressWheel` (interface 1.1) carries one bit per direction, and the filter
+tests the sign of the delta per report, clearing the wheel bit and its data
+while leaving any movement in the same report untouched.
+
+`ASX_FILTER_CFG` grew that field on the end, and `ASX_STATUS` reports it back
+the same way, so a 1.0 layout stays a prefix of the 1.1 one: a client built
+against the newer header sends four `ULONG`s to a 1.0 driver, which reads the
+three it knows and ignores the rest. `hostrun` checks the reported version and
+says plainly that the wheel still scrolls rather than pretending it is bound.
+
 `IOCTL_ASX_READ_EVENTS` is an inverted call: it parks in a manual queue and is
 completed the moment a physical report arrives, so a macro trigger costs no
 polling interval and the notification leaves the kernel before `mouclass` has
@@ -181,7 +195,7 @@ ask for. **Clients must be elevated.**
 | `IOCTL_ASX_STATUS` | out `ASX_STATUS` | attached / connected / playing / queued, and counters |
 | `IOCTL_ASX_SUBMIT` | in `ASX_SUBMIT` | queue up to 4096 steps; the ring holds 16384 |
 | `IOCTL_ASX_STOP` | — | drop the queue and release anything held down |
-| `IOCTL_ASX_SET_FILTER` | in `ASX_FILTER_CFG` | suppression mask, movement suppression, event reporting |
+| `IOCTL_ASX_SET_FILTER` | in `ASX_FILTER_CFG` | suppression mask, movement suppression, event reporting, wheel direction |
 | `IOCTL_ASX_READ_EVENTS` | out `ASX_EVENT[]` | blocks until physical reports arrive |
 
 ```c

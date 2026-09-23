@@ -25,7 +25,7 @@ asxfilter_public.h
 #define ASX_SYMBOLIC_NAME       L"\\DosDevices\\AttackSharkFilter"
 #define ASX_USER_PATH           L"\\\\.\\AttackSharkFilter"
 
-#define ASX_INTERFACE_VERSION   0x00010000UL    // 1.0
+#define ASX_INTERFACE_VERSION   0x00010001UL    // 1.1 - adds SuppressWheel
 
 //
 // 0x8000 and up is the range reserved for third parties.
@@ -63,6 +63,16 @@ asxfilter_public.h
 #define ASX_HWHEEL              0x0800      // ButtonData = delta
 
 #define ASX_ALL_BUTTONS         0x03FFU
+
+//
+// SuppressWheel values. The wheel is a single ButtonFlags bit carrying a
+// signed ButtonData, not a transition per direction, so which way it turned
+// is the sign of the delta and cannot be expressed in the button mask. A
+// wheel bound to a macro therefore gets its own field, one bit per direction.
+//
+#define ASX_SUPPRESS_WHEEL_UP   0x00000001UL
+#define ASX_SUPPRESS_WHEEL_DOWN 0x00000002UL
+#define ASX_SUPPRESS_WHEEL_ALL  0x00000003UL
 
 //
 // One emitted report. A step may carry movement and a button transition at
@@ -112,7 +122,15 @@ typedef struct _ASX_FILTER_CFG {
     unsigned long   SuppressButtons;    // ASX_* transitions to swallow
     unsigned long   SuppressMove;       // non-zero: drop physical movement
     unsigned long   ReportEvents;       // non-zero: queue for READ_EVENTS
+    unsigned long   SuppressWheel;      // ASX_SUPPRESS_WHEEL_* directions
 } ASX_FILTER_CFG, *PASX_FILTER_CFG;
+
+//
+// The 1.0 structure, which is this one without SuppressWheel. A client built
+// against the older header sends exactly this many bytes, and the driver
+// still has to accept it.
+//
+#define ASX_FILTER_CFG_V1_SIZE  (3 * sizeof(unsigned long))
 
 //
 // IOCTL_ASX_READ_EVENTS output: an array of these. The call pends until at
@@ -143,6 +161,8 @@ typedef struct _ASX_STATUS {
     unsigned __int64 StepsEmitted;
     unsigned __int64 PhysicalReports;
     unsigned __int64 Dropped;           // steps discarded by a full queue
+    unsigned long    SuppressWheel;     // added in 1.1; appended, not inserted,
+                                        // so a 1.0 layout stays a prefix of it
 } ASX_STATUS, *PASX_STATUS;
 
 #endif // ASXFILTER_PUBLIC_H

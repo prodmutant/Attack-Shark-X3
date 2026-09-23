@@ -64,6 +64,18 @@ BUTTON5_DOWN, BUTTON5_UP = 0x0100, 0x0200
 WHEEL, HWHEEL = 0x0400, 0x0800
 ALL_BUTTONS = 0x03FF
 
+#: The filter's interface version this client is written against. A driver
+#: reporting less than 1.1 has no wheel field: everything else works, and a
+#: wheel bound to a macro scrolls the page as well as firing it.
+INTERFACE_VERSION = (1, 1)
+
+#: SuppressWheel values. The wheel is one ButtonFlags bit with a signed delta
+#: rather than a transition per direction, so it cannot be expressed in the
+#: button mask - withholding a notch means knowing its sign, which is a
+#: decision the filter has to make per report.
+WHEEL_NONE, WHEEL_UP, WHEEL_DOWN = 0x0, 0x1, 0x2
+WHEEL_DIR_BITS = {"up": WHEEL_UP, "down": WHEEL_DOWN}
+
 #: vendor-UI button number -> (down, up). 4 is forward, 5 is back, as
 #: everywhere else in this project.
 BUTTON_FLAGS = {
@@ -114,7 +126,7 @@ class EVENT(C.Structure):
 
 class FILTER_CFG(C.Structure):
     _fields_ = [("SuppressButtons", W.DWORD), ("SuppressMove", W.DWORD),
-                ("ReportEvents", W.DWORD)]
+                ("ReportEvents", W.DWORD), ("SuppressWheel", W.DWORD)]
 
 
 class STATUS(C.Structure):
@@ -124,7 +136,12 @@ class STATUS(C.Structure):
                 ("SuppressButtons", W.DWORD), ("SuppressMove", W.DWORD),
                 ("StepsEmitted", C.c_ulonglong),
                 ("PhysicalReports", C.c_ulonglong),
-                ("Dropped", C.c_ulonglong)]
+                ("Dropped", C.c_ulonglong),
+                # Appended, never inserted: an older filter fills the fields
+                # above and stops, so the layout it wrote stays a prefix of
+                # this one and the tail simply reads back as the zero it was
+                # initialised to.
+                ("SuppressWheel", W.DWORD)]
 
 
 k32.CreateFileW.argtypes = [W.LPCWSTR, W.DWORD, W.DWORD, C.c_void_p,
@@ -226,6 +243,9 @@ class Driver:
             "capacity": st.Capacity,
             "suppress_buttons": st.SuppressButtons,
             "suppress_move": bool(st.SuppressMove),
+            "suppress_wheel": st.SuppressWheel,
+            "wheel_suppression": (st.Version >> 16,
+                                  st.Version & 0xFFFF) >= INTERFACE_VERSION,
             "steps_emitted": st.StepsEmitted,
             "physical_reports": st.PhysicalReports,
             "dropped": st.Dropped,
@@ -289,26 +309,35 @@ class Driver:
             self._ioctl(self._h, IOCTL_STOP, None, None)
 
     # ----------------------------------------------------- physical input --
-    def set_filter(self, suppress_buttons=0, suppress_move=False, report_events=False):
+    def set_filter(self, suppress_buttons=0, suppress_move=False,
+                   report_events=False, suppress_wheel=0):
         """Control what the *physical* mouse is allowed to do.
 
         `suppress_buttons` is a mask of transitions to swallow inside the mouse
         stack, so a button bound to a macro never reaches any application - no
         hook, nothing to notice the click and eat it after the fact.
+
+        `suppress_wheel` does the same one direction at a time, which the
+        button mask cannot: a notch is one bit and a signed delta, so up and
+        down are told apart by the sign and not by the flag.
         """
         cfg = FILTER_CFG(int(suppress_buttons) & ALL_BUTTONS,
                          1 if suppress_move else 0,
-                         1 if report_events else 0)
+                         1 if report_events else 0,
+                         int(suppress_wheel) & (WHEEL_UP | WHEEL_DOWN))
         with self._lock:
             self._ioctl(self._h, IOCTL_SET_FILTER, cfg, None)
 
-    def suppress(self, buttons=(), move=False, report_events=True):
-        """set_filter, by button number: suppress([4, 5])."""
+    def suppress(self, buttons=(), move=False, report_events=True, wheel=()):
+        """set_filter, by button number: suppress([4, 5], wheel=["up"])."""
         mask = 0
         for b in buttons:
             down, up = BUTTON_FLAGS[b] if not isinstance(b, str) else NAME_FLAGS[b]
             mask |= down | up
-        self.set_filter(mask, move, report_events)
+        wmask = 0
+        for d in wheel:
+            wmask |= WHEEL_DIR_BITS[d] if isinstance(d, str) else int(d)
+        self.set_filter(mask, move, report_events, wmask)
         return mask
 
     def read_events(self, max_events=64):
