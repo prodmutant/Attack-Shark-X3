@@ -527,6 +527,11 @@ initPages();
   catch (e) { toast('cannot reach the driver service: ' + e.message); }
 })();
 setInterval(async () => {
+  /* A poll is a request, a request is a Python thread, and a Python thread
+     competing for the GIL delays the macro hook - which delays every mouse
+     event on the machine. None of that is worth paying for a tab nobody is
+     looking at, least of all while the foreground window is a game. */
+  if (document.hidden) return;
   if (inflight || $('assign').open) return;
   try {
     const snap = await api('/api/state');
