@@ -607,10 +607,9 @@ def _custom(path):
     """Your own artwork instead of the shipped artwork, if you have put any there.
 
     `logo.custom.png` beside `logo.png` wins, and the same for the backdrop.
-    The shipped mark and watermark are drawn from the traced outline by
-    `tools/make_mark.py` and are deliberately plain, because they have to be
-    something this project can license to everyone; that is a poor reason to
-    stop anyone making their copy look how they want.
+    The shipped artwork is the project's own and every build carries it; this
+    is only for someone who wants their copy, run from source, to look
+    different.
 
     Doing it here rather than in the page means nothing else has to know: the
     markup still asks for logo.png and the stylesheet still asks for

@@ -3,13 +3,9 @@
     python build_exe.py
 
 Produces dist/PRODMUTANT X3 Driver.exe - one file, no console, tray icon, with
-the web interface bundled inside. Needs `pip install pyinstaller pillow`.
-
-    python build_exe.py --private
-
-Builds the same thing for yourself, carrying the `.custom.` artwork a release
-is not allowed to carry. It lands under a different name so the two can sit in
-dist/ together and nobody can hand out the wrong one.
+the web interface and the artwork bundled inside. Needs
+`pip install pyinstaller pillow`. There is one build: the one you run is the
+one that is released.
 
 The result is deliberately not committed. A build is an output, not a source,
 and a repository that carries both is a repository where nobody can tell which
@@ -24,11 +20,9 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 NAME = "PRODMUTANT X3 Driver"
-PRIVATE_NAME = NAME + " (mine)"
 ENTRY = os.path.join(ROOT, "launch.py")
 WEB = os.path.join(ROOT, "attackshark", "web")
 ICON = os.path.join(WEB, "logo.ico")
-PRIVATE_ICON = os.path.join(WEB, "logo.custom.ico")
 
 ENTRY_SRC = '''"""Frozen entry point: hand straight to the tray app."""
 import multiprocessing
@@ -61,39 +55,29 @@ def ensure_icon(ico, png):
     return ico
 
 
-def stage_web(into, private=False):
-    """A copy of the interface with anyone's private artwork left behind.
+def stage_web(into):
+    """A copy of the interface as the repository has it.
 
     `--add-data` takes a directory and takes all of it, and `attackshark/web`
-    is exactly where the `.custom.` override files live - so building on a
-    machine that has them quietly bakes them into the executable and ships
-    them to everybody. That happened once. Staging a filtered copy is the only
-    place this can be fixed, because by the time PyInstaller has the directory
-    it is already too late.
+    is where someone's local `.custom.` art swap lives. Staging a filtered
+    copy keeps every build identical to the source - the shipped artwork,
+    whoever builds it.
     """
-    keep = ["__pycache__"] if private else ["*.custom.*", "__pycache__"]
     dst = os.path.join(into, "attackshark", "web")
-    shutil.copytree(WEB, dst, ignore=shutil.ignore_patterns(*keep))
+    shutil.copytree(WEB, dst, ignore=shutil.ignore_patterns("*.custom.*", "__pycache__"))
     left = sorted(f for f in os.listdir(dst) if ".custom." in f)
-    if private:
-        print("private build, carrying: " + (", ".join(left) or "nothing"))
-    else:
-        assert not left, f"private artwork reached the bundle: {left}"
+    assert not left, f"local art swap reached the bundle: {left}"
     return dst
 
 
 def main():
-    private = "--private" in sys.argv[1:]
-    name = PRIVATE_NAME if private else NAME
+    name = NAME
     icon = ensure_icon(ICON, os.path.join(WEB, "logo.png"))
-    if private:
-        icon = ensure_icon(PRIVATE_ICON,
-                           os.path.join(WEB, "logo.custom.png")) or icon
     with open(ENTRY, "w", encoding="utf-8") as fh:
         fh.write(ENTRY_SRC)
 
     stage = tempfile.mkdtemp(prefix="asx-build-")
-    web = stage_web(stage, private)
+    web = stage_web(stage)
     sep = ";" if os.name == "nt" else ":"
     args = [
         sys.executable, "-m", "PyInstaller",

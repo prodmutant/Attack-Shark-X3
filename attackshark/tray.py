@@ -81,10 +81,10 @@ def resource_dir():
 def icon_path():
     """The tray and window icon - your own copy first.
 
-    Same rule the web artwork follows in `server._custom`: `logo.custom.ico`
-    beside `logo.ico` wins. A public build never carries one, because
-    `build_exe.py` leaves `*.custom.*` behind; a private build does, so the
-    face in the tray matches the face in the page.
+    Same rule the web artwork follows in `server._custom`: a local
+    `logo.custom.ico` beside `logo.ico` wins when running from source, so the
+    face in the tray matches the face in the page. A build always carries
+    the shipped icon.
     """
     for rel in ("attackshark/web/logo.custom.ico", "attackshark/web/logo.ico"):
         p = os.path.join(resource_dir(), *rel.split("/"))
