@@ -104,6 +104,8 @@ def main():
         "--icon", icon,
         # the interface travels inside the exe, from the staged copy
         "--add-data", f"{web}{sep}attackshark{os.sep}web",
+        # the Tools page's USB fix runs this script elevated
+        "--add-data", f"{os.path.join(ROOT, 'tools', 'fix_usb_lag.ps1')}{sep}tools",
         # ctypes-only project: nothing heavy to pull in
         "--exclude-module", "tkinter",
         "--exclude-module", "PIL",

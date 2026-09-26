@@ -25,6 +25,8 @@
   <nav class="nav" id="nav">
     <button type="button" class="navitem on" data-page="dashboard">Dashboard</button>
     <button type="button" class="navitem" data-page="macros">Macros</button>
+    <button type="button" class="navitem" data-page="profiles">Profiles</button>
+    <button type="button" class="navitem" data-page="tools">Tools</button>
     <button type="button" class="navitem" data-page="themes">Themes</button>
   </nav>
 
@@ -40,6 +42,7 @@
       <!-- the one indicator here: it reports real hardware presence -->
       <i class="dot" id="dot" aria-hidden="true"></i>
       <span id="linktext">connecting…</span>
+      <span class="tag" id="profbadge" hidden></span>
       <em id="linkmeta"></em>
     </div>
 
@@ -202,11 +205,13 @@
       </section>
 
       <section class="blk">
-        <h2>Profile</h2>
+        <h2>Backup and reset</h2>
+        <p class="hint">A backup holds the settings, macros, per-app profiles
+          and saved test runs in one file.</p>
         <div class="row wrap">
+          <button class="btn" id="export">Export backup…</button>
+          <button class="btn" id="importbtn">Restore backup…</button>
           <button class="btn" id="apply">Push everything</button>
-          <button class="btn" id="export">Export…</button>
-          <button class="btn" id="importbtn">Import…</button>
           <button class="btn danger" id="reset">Factory reset</button>
           <input type="file" id="importfile" accept="application/json" hidden>
         </div>
@@ -234,6 +239,258 @@
       <section class="blk span">
         <h2>Button bindings</h2>
         <table class="binds"><tbody id="binds"></tbody></table>
+      </section>
+
+    </div>
+
+    <div class="page" id="page-tools">
+
+      <!-- Measurements read Raw Input from the X3 only and never write to it.
+           One test runs at a time; starting one ends the other. -->
+      <nav class="pftabs span" id="pftabs">
+        <button type="button" data-sub="link" class="on">Link</button>
+        <button type="button" data-sub="sensor">Sensor</button>
+        <button type="button" data-sub="clicks">Clicks</button>
+        <button type="button" data-sub="aim">Aim</button>
+        <button type="button" data-sub="pc">PC</button>
+      </nav>
+
+      <!-- ============================================================ link -->
+      <section class="blk span" data-sub="link">
+        <h2>Report rate</h2>
+        <p class="hint">Press Start, then move the mouse quickly in circles for
+          about ten seconds. Only the X3 is recorded; other mice are ignored.
+          Every finished run is kept below, so a run on the cable and one on
+          the receiver can be compared.</p>
+        <div class="row">
+          <button type="button" class="btn" id="pfpoll">Start</button>
+          <span class="pflive" id="pfpolllive"></span>
+        </div>
+        <div class="pffig" id="pfpollfig" hidden></div>
+        <ul class="pfnotes" id="pfpollnotes"></ul>
+        <div class="pfcharts" id="pfcharts" hidden>
+          <figure class="pfchart">
+            <figcaption>Gap between reports</figcaption>
+            <canvas id="pfhist" height="170"></canvas>
+            <div class="pfread" id="pfhistread">&nbsp;</div>
+          </figure>
+          <figure class="pfchart">
+            <figcaption>Rate over the run, per quarter second of movement</figcaption>
+            <canvas id="pftime" height="170"></canvas>
+            <div class="pfread" id="pftimeread">&nbsp;</div>
+          </figure>
+        </div>
+      </section>
+
+      <section class="blk span" data-sub="link">
+        <h2>Saved runs</h2>
+        <table class="pftable" id="pfhisttable" hidden>
+          <thead><tr><th>When</th><th>Link</th><th>Rate</th><th>Median ms</th>
+            <th>Jitter ms</th><th>p99 ms</th><th>Lost</th><th>Late</th><th></th></tr></thead>
+          <tbody id="pfhistbody"></tbody>
+        </table>
+        <div class="row">
+          <span class="hint" id="pfhistnote">No runs yet.</span>
+          <button type="button" class="btn" id="pfhistclear" hidden>Clear all</button>
+        </div>
+      </section>
+
+      <section class="blk" data-sub="link">
+        <h2>Receiver placement</h2>
+        <p class="hint">Press Start and keep the mouse moving fast while you
+          try the receiver in different spots. The reading covers the last two
+          seconds, so hold each spot for a few.</p>
+        <div class="row">
+          <button type="button" class="btn" id="pflink">Start</button>
+          <span class="pflive" id="pflinklive"></span>
+        </div>
+        <div class="pfmeter" id="pfmeter" hidden>
+          <b id="pfmeterval">-</b><span id="pfmeterlbl">lost in fast motion</span>
+          <div class="pfbar"><i id="pfbarfill"></i></div>
+          <canvas id="pfspark" height="60"></canvas>
+          <div class="pfread">last 60 readings; lower is better</div>
+        </div>
+      </section>
+
+      <section class="blk" data-sub="link">
+        <h2>USB port</h2>
+        <p class="hint">Where the receiver (or cable) is plugged in, read from
+          the Windows device tree.</p>
+        <div id="pfusb"></div>
+        <div class="row"><button type="button" class="btn" id="pfusbbtn">Refresh</button></div>
+      </section>
+
+      <!-- ========================================================== sensor -->
+      <section class="blk" data-sub="sensor">
+        <h2>DPI accuracy</h2>
+        <p class="hint">Lay a ruler on the desk. Press Start, slide the mouse
+          exactly the distance along it in one straight stroke, then press
+          Stop. Lift the mouse to go back. Do runs both left-right and
+          up-down to compare the two axes.</p>
+        <div class="row">
+          <label class="pfinline">Distance<input type="number" id="pfmm" min="10" max="2000" step="1" value="100" class="num"><span>mm</span></label>
+          <button type="button" class="btn" id="pfdpi">Start</button>
+          <span class="pflive" id="pfdpilive"></span>
+        </div>
+        <table class="pftable" id="pfdpitable" hidden>
+          <thead><tr><th>Run</th><th>Stage DPI</th><th>Measured</th>
+            <th>Error</th><th>Off straight</th></tr></thead>
+          <tbody id="pfdpibody"></tbody>
+        </table>
+        <div class="row">
+          <span class="hint" id="pfdpisum"></span>
+          <button type="button" class="btn" id="pfdpifix" hidden>Apply</button>
+        </div>
+        <p class="hint" id="pfdpiaxes"></p>
+      </section>
+
+      <section class="blk" data-sub="sensor">
+        <h2>Lift-off</h2>
+        <p class="hint">Raise the mouse by stacking flat things under both
+          sides, level, so the sensor sits that far off the pad: a playing card
+          is about 0.3 mm, printer paper about 0.1 mm. Enter the height, press
+          Test and slide it back and forth for four seconds. Lift-off is set
+          to <span id="pflodnow">-</span>.</p>
+        <div class="row">
+          <label class="pfinline">Height<input type="number" id="pflodmm" min="0" max="10" step="0.1" value="1.0" class="num"><span>mm</span></label>
+          <button type="button" class="btn" id="pflod">Test</button>
+          <span class="pflive" id="pflodlive"></span>
+        </div>
+        <table class="pftable" id="pflodtable" hidden>
+          <thead><tr><th>Height</th><th>Counts</th><th>Result</th></tr></thead>
+          <tbody id="pflodbody"></tbody>
+        </table>
+        <p class="hint" id="pflodsum"></p>
+      </section>
+
+      <section class="blk span" data-sub="sensor">
+        <h2>Top speed and spin-out</h2>
+        <p class="hint">Press Start and flick as hard as you would in a game,
+          several times, then Stop. Speed uses the active DPI stage, so check
+          DPI accuracy first if it matters.</p>
+        <div class="row">
+          <button type="button" class="btn" id="pfspeed">Start</button>
+          <span class="pflive" id="pfspeedlive"></span>
+        </div>
+        <div class="pffig" id="pfspeedfig" hidden></div>
+        <ul class="pfnotes" id="pfspeednotes"></ul>
+        <figure class="pfchart" id="pfspeedchart" hidden>
+          <figcaption>Speed over the run, m/s</figcaption>
+          <canvas id="pfspeedcv" height="170"></canvas>
+          <div class="pfread" id="pfspeedread">&nbsp;</div>
+        </figure>
+      </section>
+
+      <section class="blk" data-sub="sensor">
+        <h2>Path</h2>
+        <p class="hint">Press Start and draw: slow diagonals, circles, quick
+          zig-zags. Each dot is one report. Then flip angle snap and draw the
+          same shapes to see what it does. Angle snap is
+          <span id="pfsnapnow">-</span>.</p>
+        <div class="row">
+          <button type="button" class="btn" id="pfpath">Start</button>
+          <span class="pflive" id="pfpathlive"></span>
+        </div>
+        <canvas id="pfpathcv" class="pfpathcv" height="320"></canvas>
+        <p class="hint" id="pfpathsum"></p>
+      </section>
+
+      <section class="blk" data-sub="sensor">
+        <h2>Stillness</h2>
+        <p class="hint">Put the mouse down on the pad, press Start and do not
+          touch it or the desk. A healthy sensor sends nothing. Try it at your
+          highest DPI stage, where noise shows first.</p>
+        <div class="row">
+          <label class="pfinline">For<input type="number" id="pfstills" min="3" max="60" step="1" value="10" class="num"><span>s</span></label>
+          <button type="button" class="btn" id="pfstill">Start</button>
+          <span class="pflive" id="pfstilllive"></span>
+        </div>
+        <p class="pfverdict" id="pfstillsum"></p>
+      </section>
+
+      <!-- ========================================================== clicks -->
+      <section class="blk span" data-sub="clicks">
+        <h2>Click timing</h2>
+        <p class="hint">Press Start, then click every button the way you
+          normally do for twenty seconds: singles, doubles, fast taps. Macros
+          are paused while this runs.</p>
+        <div class="row">
+          <button type="button" class="btn" id="pfclick">Start</button>
+          <span class="pflive" id="pfclicklive"></span>
+        </div>
+        <table class="pftable" id="pfclicktable" hidden>
+          <caption class="hint">times in milliseconds</caption>
+          <thead><tr><th>Button</th><th>Presses</th><th>Hold min</th>
+            <th>Hold med.</th><th>Gap min</th><th>Chatter</th></tr></thead>
+          <tbody id="pfclickbody"></tbody>
+        </table>
+        <div class="row" id="pfclickadvice" hidden>
+          <span class="hint" id="pfclickwhy"></span>
+          <button type="button" class="btn" id="pfclickapply">Apply</button>
+        </div>
+      </section>
+
+      <section class="blk span" data-sub="clicks">
+        <h2>Scroll wheel</h2>
+        <p class="hint">Scroll one way only, one notch at a time, and count
+          the notches as you go. Enter the count before you stop and the page
+          compares it with what arrived. Notches that register in the wrong
+          direction are the usual first sign of a worn wheel.</p>
+        <div class="row">
+          <label class="pfinline">Notches I scrolled<input type="number" id="pfwheeln" min="0" max="500" step="1" placeholder="optional" class="num"></label>
+          <button type="button" class="btn" id="pfwheel">Start</button>
+          <span class="pflive" id="pfwheellive"></span>
+        </div>
+        <p class="pfverdict" id="pfwheelsum"></p>
+      </section>
+
+      <!-- ============================================================= aim -->
+      <section class="blk span" data-sub="aim">
+        <h2>Sensitivity</h2>
+        <p class="hint">How far the mouse travels for one full turn in a game.
+          The yaw is the game's degrees per count at sensitivity 1; 0.022 is
+          the most common value. Games that read raw input ignore the Windows
+          pointer speed.</p>
+        <div class="pfcalc">
+          <label>DPI<input type="number" id="pfcdpi" min="50" max="26000" step="50" class="num"></label>
+          <label>Sensitivity<input type="number" id="pfcsens" min="0" step="0.01" value="1" class="num"></label>
+          <label>Yaw<input type="number" id="pfcyaw" min="0" step="0.0001" value="0.022" class="num"></label>
+        </div>
+        <div class="pffig" id="pfcout"></div>
+        <div class="pfcalc">
+          <label>New DPI<input type="number" id="pfcnewdpi" min="50" max="26000" step="50" class="num"></label>
+          <label>Target cm/360<input type="number" id="pfctarget" min="1" step="0.5" class="num"></label>
+        </div>
+        <p class="pfverdict" id="pfcconv"></p>
+      </section>
+
+      <!-- ============================================================== pc -->
+      <section class="blk span" data-sub="pc">
+        <h2>Windows</h2>
+        <p class="hint">Host settings that change what the mouse sends before
+          anything sees it, and software that fights over it.</p>
+        <table class="pftable pfsys"><tbody id="pfsys"></tbody></table>
+        <div class="row"><button type="button" class="btn" id="pfsysbtn">Check again</button></div>
+      </section>
+
+    </div>
+
+    <div class="page" id="page-profiles">
+
+      <section class="blk span">
+        <h2>Per-app profiles</h2>
+        <p class="hint">A profile overrides some settings while one of its
+          programs is the window in front, and hands the rest back when you
+          switch away. The dashboard keeps showing your normal settings.</p>
+        <div class="row">
+          <div class="seg" id="profon"></div>
+          <span class="pflive" id="profstatus"></span>
+        </div>
+        <table class="pftable" id="proftable">
+          <thead><tr><th>Profile</th><th>Programs</th><th>Overrides</th><th></th></tr></thead>
+          <tbody id="profbody"></tbody>
+        </table>
+        <div class="row"><button type="button" class="btn" id="profnew">New profile</button></div>
       </section>
 
     </div>
@@ -341,11 +598,45 @@
   </form>
 </dialog>
 
+<!-- profile editor -->
+<dialog id="profedit" class="wide">
+  <form method="dialog">
+    <h3>Profile</h3>
+    <div class="mrow">
+      <label class="grow">Name<input id="pfname" class="chord" style="font-size:13px"></label>
+    </div>
+
+    <h4 class="pfh4">Programs</h4>
+    <div class="pfexes" id="pfexes"></div>
+    <div class="row">
+      <select id="pfrunning"><option value="">running programs…</option></select>
+      <input type="text" id="pfexetxt" placeholder="or type game.exe">
+      <button type="button" class="btn" id="pfexeadd">Add</button>
+    </div>
+
+    <h4 class="pfh4">Settings while it is in front</h4>
+    <p class="hint">Only ticked settings change. The DPI replaces whichever
+      stage is active.</p>
+    <table class="pftable pfover"><tbody id="pfover"></tbody></table>
+
+    <h4 class="pfh4">Macros</h4>
+    <label class="pfinline"><input type="checkbox" id="pfownbind"> Use its own button bindings</label>
+    <table class="pftable" id="pfbindtable"><tbody id="pfbinds"></tbody></table>
+
+    <div class="row end">
+      <button value="cancel" class="btn">Cancel</button>
+      <button value="ok" class="btn primary" id="pfsave">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <div id="toast" class="toast" role="status"></div>
 
 <script src="fx.js"></script>
 <script src="app.js"></script>
 <script src="track.js"></script>
 <script src="macros.js"></script>
+<script src="tools.js"></script>
+<script src="profiles.js"></script>
 </body>
 </html>

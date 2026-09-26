@@ -37,13 +37,48 @@ for the `attackshark` command. Build your own copy of the executable with
 
 ## The interface
 
-Three pages, from the nav in the header:
+Five pages, from the nav in the header:
 
 | | |
 |---|---|
 | **Dashboard** | DPI stages, polling rate, sensor toggles, power timers, profile |
 | **Macros** | the macro list, the host engine, and the per-button bindings |
+| **Profiles** | per-app profiles: settings and macro bindings that follow the program in front |
+| **Tools** | measured report rate, click chatter, DPI accuracy, and the Windows settings that undo a good mouse |
 | **Themes** | six palettes and the particle layer |
+
+### Tools
+
+Measurements read Raw Input from the X3 alone and never write to the mouse.
+Five tabs:
+
+- **Link** - report rate (real rate, jitter, reports *lost* in fast motion
+  versus reports *delivered late* by this PC), every finished run saved so a
+  cable run and a receiver run can be compared, a live placement meter for
+  finding the receiver's best spot, and the USB port the receiver is on, read
+  from the device tree.
+- **Sensor** - DPI accuracy per axis against a ruler, lift-off height,
+  top speed with spin-out detection (dropouts, stalls and reversals a hand
+  cannot make), a raw path plot that shows what angle snap does, and a
+  stillness test for sensor noise.
+- **Clicks** - press and release timing per button; a re-press under 15 ms
+  is a bouncing switch, and the page offers the key response that filters it.
+- **Aim** - eDPI, cm/360 and conversions between DPI and sensitivity.
+- **PC** - enhance pointer precision, pointer speed (only 6/11 is 1:1), USB
+  selective suspend, other mouse software, power plan, core parking and Game
+  Mode, with a fix for each. The USB fix runs `tools/fix_usb_lag.ps1` and asks
+  for administrator rights.
+
+### Profiles
+
+A profile names programs and overrides any of DPI, polling rate, lift-off,
+motion sync, ripple, angle snap, the macro engine and the button bindings
+while one of them is the foreground window. It never edits the saved
+settings: what is pushed is the base configuration with the profile laid over
+it, and switching away pushes the base back. The foreground is followed with
+a WinEvent hook, so nothing runs while nothing changes.
+
+The maths is covered by `tests/test_perf.py` and `tests/test_profiles.py`.
 
 The mouse stays on the left on every page and does three jobs from one drawing:
 it is the way into a button on the dashboard, the binding target on the macros

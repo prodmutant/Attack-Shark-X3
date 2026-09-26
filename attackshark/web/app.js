@@ -81,6 +81,8 @@ function render(snap) {
   slider('key_response_ms', st.key_response_ms, v => v + ' ms');
 
   if (window.renderMacros) window.renderMacros(snap);
+  if (window.renderProfiles) window.renderProfiles(snap);
+  if (window.renderTools) window.renderTools(snap);
   // a #macro deep link can only be honoured once there is a snapshot to edit
   if (!openedFromHash && location.hash.startsWith('#edit') && window.openMacroFromHash) {
     openedFromHash = true;
@@ -261,7 +263,7 @@ function slider(id, value, fmt) {
 }
 
 /* ------------------------------------------------------------------ pages */
-const PAGES = ['dashboard', 'macros', 'themes'];
+const PAGES = ['dashboard', 'macros', 'profiles', 'tools', 'themes'];
 
 function showPage(name) {
   if (!PAGES.includes(name)) name = PAGES[0];
@@ -271,7 +273,9 @@ function showPage(name) {
   }
   document.querySelectorAll('.navitem').forEach(b =>
     b.classList.toggle('on', b.dataset.page === name));
+  document.body.dataset.page = name;
   try { localStorage.setItem('asx.page', name); } catch (_) { /* private mode */ }
+  document.dispatchEvent(new CustomEvent('asx:page', { detail: name }));
 }
 
 function currentPage() {
@@ -404,22 +408,25 @@ $('reset').onclick = async () => {
   try { render(await api('/api/reset', {})); toast('factory settings restored', true); }
   catch (e) { toast(e.message); }
 };
-$('export').onclick = () => {
-  const blob = new Blob([JSON.stringify(S.state, null, 2)], { type: 'application/json' });
-  const a = el('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'x3-profile.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
+$('export').onclick = async () => {
+  try {
+    const data = await api('/api/backup');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = el('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `x3-backup-${data.created.slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) { toast(e.message); }
 };
 $('importbtn').onclick = () => $('importfile').click();
 $('importfile').onchange = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   try {
-    patch(JSON.parse(await file.text()));
-    toast('profile imported', true);
-  } catch (err) { toast('could not read that profile'); }
+    render(await api('/api/restore', JSON.parse(await file.text())));
+    toast('backup restored', true);
+  } catch (err) { toast('could not restore: ' + err.message); }
   e.target.value = '';
 };
 
@@ -537,7 +544,9 @@ setInterval(async () => {
     const snap = await api('/api/state');
     const wasBatt = S && S.battery && S.battery.level_raw;
     const nowBatt = snap.battery && snap.battery.level_raw;
-    if (snap.device.connected !== (S && S.device.connected) || wasBatt !== nowBatt)
+    const prof = (x) => x && x.profiles ? `${x.profiles.active}|${x.profiles.foreground}|${x.profiles.error}` : '';
+    if (snap.device.connected !== (S && S.device.connected) || wasBatt !== nowBatt ||
+        prof(snap) !== prof(S))
       render(snap);
   } catch (_) { /* server restarting */ }
 }, 2500);

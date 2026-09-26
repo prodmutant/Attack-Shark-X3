@@ -21,6 +21,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import hostrun
 from . import macro as M
+from . import perf
+from . import profiles as PR
 from . import protocol as P
 from .device import AttackSharkX3, DeviceNotFound
 from .hostrun import BINDABLE, ENGINE, TRIGGER_NAMES
@@ -170,7 +172,12 @@ def _snapshot(dev_state):
     return {"state": dev_state, "packets": packets, "button_labels": labels,
             "device": _device_info(), "catalog": _catalog(),
             "battery": _battery(), "macros": macros,
-            "engine": ENGINE.status()}
+            "engine": ENGINE.status(),
+            "profiles": {"list": dev_state.get("profiles") or [],
+                         "on": dev_state.get("profiles_on", True),
+                         "active": PR.WATCHER.active_id,
+                         "foreground": PR.WATCHER.exe,
+                         "error": PR.WATCHER.error}}
 
 
 # Which report each field lives in, so a patch only pushes what changed.
@@ -220,24 +227,42 @@ def apply_patch(patch):
     mouse.state["active_stage"] = min(mouse.state["active_stage"],
                                       len(mouse.state["dpi"]) - 1)
 
-    # Validate by building every packet before sending any of them.
-    built = mouse.packets()
+    # Validate by building every packet before sending any of them. What is
+    # sent is the effective configuration: an active per-app profile still
+    # wins over the base settings being edited underneath it.
+    live = _device_for(PR.effective(mouse.state))
+    built = live.packets()
 
     with _lock:
-        with mouse:
-            mouse._send(built["commit"], "commit")
+        with live:
+            live._send(built["commit"], "commit")
             for group in ("sensor", "power", "polling", "buttons"):
                 if group in touched:
-                    mouse._send(built[group], group)
+                    live._send(built[group], group)
         mouse.save()
     return _snapshot(mouse.state)
+
+
+def _device_for(state):
+    """A device handle that pushes `state` and must never be saved: it may be
+    carrying a profile's overrides, which are not the configuration."""
+    dev = AttackSharkX3()
+    dev.state = state
+    dev.save = lambda: None
+    return dev
+
+
+def _push_state(state):
+    live = _device_for(state)
+    with live:
+        for group, pkt in live.packets().items():
+            live._send(pkt, group)
 
 
 def push_all():
     mouse = AttackSharkX3()
     with _lock:
-        with mouse:
-            mouse.apply()
+        _push_state(PR.effective(mouse.state))
     return _snapshot(mouse.state)
 
 
@@ -253,9 +278,10 @@ def reset_factory():
 
 
 def _sync_engine(mouse):
-    """Make the live engine match what is stored."""
+    """Make the live engine match what is stored (and any active profile)."""
+    state = PR.effective(mouse.state)
     by_id = {}
-    for raw in mouse.state.get("macros", []):
+    for raw in state.get("macros", []):
         try:
             mac = M.validate(raw)
         except M.MacroError:
@@ -264,11 +290,11 @@ def _sync_engine(mouse):
     ENGINE.registry = dict(by_id)        # what `call` steps resolve against
     ENGINE.bindings.clear()
     ENGINE.passthrough.clear()
-    for btn, bind in (mouse.state.get("macro_bindings") or {}).items():
+    for btn, bind in (state.get("macro_bindings") or {}).items():
         mac = by_id.get((bind or {}).get("id"))
         if mac:
             ENGINE.bind(int(btn), mac, bool(bind.get("passthrough")))
-    if mouse.state.get("engine_on"):
+    if state.get("engine_on"):
         # Unbinding the last macro has to take the hook down again, and
         # start() will not do it from the inside: it sees a live thread and
         # returns. Drop it first, then let start() decide what is still needed.
@@ -397,6 +423,142 @@ def macro_flash(payload):
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "[::1]")
 
 
+def _profile_switch(prof):
+    """Foreground moved to (or away from) a profiled program."""
+    _log_patch((prof or {}).get("set") or {},
+               f"profile={prof['name']!r}" if prof else "profile=none (base)")
+    if not AttackSharkX3.discover():
+        return
+    mouse = AttackSharkX3()
+    with _lock:
+        _push_state(PR.effective(mouse.state, prof))
+    _sync_engine(mouse)
+
+
+def profile_save(payload):
+    prof = PR.validate(payload.get("profile") or {}, tuple(P.POLLING_RATES))
+    mouse = AttackSharkX3()
+    lst = [p for p in mouse.state.get("profiles") or [] if p.get("id") != prof["id"]]
+    taken = {e for p in lst for e in p["exes"]}
+    clash = [e for e in prof["exes"] if e in taken]
+    if clash:
+        raise ValueError(f"{', '.join(clash)} already belongs to another profile")
+    lst.append(prof)
+    mouse.state["profiles"] = lst
+    mouse.save()
+    PR.WATCHER.recheck()
+    return _snapshot(mouse.state)
+
+
+def profile_delete(payload):
+    mouse = AttackSharkX3()
+    mouse.state["profiles"] = [p for p in mouse.state.get("profiles") or []
+                               if p.get("id") != payload.get("id")]
+    mouse.save()
+    PR.WATCHER.recheck()
+    return _snapshot(mouse.state)
+
+
+def profile_toggle(payload):
+    mouse = AttackSharkX3()
+    mouse.state["profiles_on"] = bool(payload.get("on"))
+    mouse.save()
+    PR.WATCHER.recheck()
+    return _snapshot(mouse.state)
+
+
+BACKUP_VERSION = 1
+
+
+def backup():
+    """Everything a new PC needs: settings, macros, profiles, saved test runs."""
+    return {"kind": "prodmutant-x3-backup", "version": BACKUP_VERSION,
+            "created": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "state": AttackSharkX3().state, "perf_history": perf.history()}
+
+
+def restore(payload):
+    """Put a backup back. A bare settings export (the old format) works too.
+
+    Every macro and profile is validated before anything is written, so a
+    damaged file changes nothing rather than half of everything.
+    """
+    if payload.get("kind") == "prodmutant-x3-backup":
+        incoming, history = payload.get("state") or {}, payload.get("perf_history")
+    else:
+        incoming, history = payload, None
+    if not isinstance(incoming, dict) or "dpi" not in incoming:
+        raise ValueError("that file is not a settings export or backup")
+    macros = [M.validate(m) for m in incoming.get("macros") or []]
+    profs = [PR.validate(p, tuple(P.POLLING_RATES)) for p in incoming.get("profiles") or []]
+
+    mouse = AttackSharkX3()
+    keep = {k: v for k, v in incoming.items() if k in mouse.state or k in (
+        "macros", "profiles", "profiles_on", "macro_bindings", "engine_on")}
+    keep["macros"], keep["profiles"] = macros, profs
+    mouse.state.update(keep)
+    mouse.state["colors"] = [tuple(c) for c in mouse.state.get("colors", [])]
+    _device_for(PR.effective(mouse.state)).packets()        # validates the rest
+    mouse.save()
+    if isinstance(history, list):
+        perf._history_write(history)
+    if AttackSharkX3.discover():
+        with _lock:
+            _push_state(PR.effective(mouse.state))
+    _sync_engine(mouse)
+    PR.WATCHER.recheck()
+    return _snapshot(mouse.state)
+
+
+def perf_start(payload):
+    """Begin a measurement. Only the X3's own reports are recorded."""
+    if perf.SAMPLER is None:
+        raise ValueError("measurements need Windows")
+    mode = payload.get("mode")
+    if mode not in perf.MODES:
+        raise ValueError(f"unknown test {mode!r}")
+    params = {}
+    if mode == "dpi":
+        mm = float(payload.get("distance_mm") or 0)
+        if not 10 <= mm <= 2000:
+            raise ValueError("distance must be between 10 and 2000 mm")
+        params["distance_mm"] = mm
+    if mode == "lod":
+        params["height_mm"] = round(float(payload.get("height_mm") or 0), 2)
+        params["duration_s"] = 4
+    if mode == "still":
+        params["duration_s"] = max(3, min(60, float(payload.get("seconds") or 10)))
+    if mode == "wheel":
+        params["expected"] = int(payload.get("expected") or 0) or None
+    perf.SAMPLER.start(mode, params)
+    if mode in ("click", "wheel") and ENGINE.active:
+        # A bound button (or wheel) would fire its macro, and the hook would
+        # swallow the very input being measured. Paused for the test.
+        ENGINE.stop()
+        perf.SAMPLER.on_stop = lambda: _sync_engine(AttackSharkX3())
+    return _perf_results()
+
+
+def _perf_results():
+    """Results judged against what the mouse is really set to right now -
+    the active profile's DPI and rate, not the base settings."""
+    return perf.results(PR.effective(AttackSharkX3().state),
+                        _device_info().get("link"))
+
+
+def perf_fix(payload):
+    r = perf.system_fix(payload.get("what"))
+    if r.pop("push", False) and AttackSharkX3.discover():
+        push_all()          # whatever it was may have left its own settings
+    return r
+
+
+def perf_stop():
+    if perf.SAMPLER is not None:
+        perf.SAMPLER.stop()
+    return _perf_results()
+
+
 def _request_allowed(host, origin, port):
     """Whether a request may be served, from its Host and Origin headers.
 
@@ -510,6 +672,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_file("index.html")
         if path == "/api/state":
             return self._send_json(_snapshot(AttackSharkX3().state))
+        if path == "/api/backup":
+            return self._send_json(backup())
+        if path == "/api/programs":
+            return self._send_json({"programs": PR.running_programs()})
+        if path == "/api/perf/results":
+            return self._send_json(_perf_results())
+        if path == "/api/perf/history":
+            return self._send_json({"history": perf.history()})
+        if path == "/api/perf/usb":
+            return self._send_json(perf.usb_port())
+        if path == "/api/perf/system":
+            return self._send_json(perf.system_check(AttackSharkX3().state))
         if path.startswith("/api/"):
             return self.send_error(404)
         return self._send_file(path)
@@ -542,9 +716,25 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(macro_test(payload))
             if self.path == "/api/macro/flash":
                 return self._send_json(macro_flash(payload))
+            if self.path == "/api/restore":
+                return self._send_json(restore(payload))
+            if self.path == "/api/profile/save":
+                return self._send_json(profile_save(payload))
+            if self.path == "/api/profile/delete":
+                return self._send_json(profile_delete(payload))
+            if self.path == "/api/profile/toggle":
+                return self._send_json(profile_toggle(payload))
+            if self.path == "/api/perf/start":
+                return self._send_json(perf_start(payload))
+            if self.path == "/api/perf/stop":
+                return self._send_json(perf_stop())
+            if self.path == "/api/perf/fix":
+                return self._send_json(perf_fix(payload))
+            if self.path == "/api/perf/history/delete":
+                return self._send_json({"history": perf.history_delete(payload.get("index"))})
         except DeviceNotFound as e:
             return self._send_json({"error": str(e), "kind": "disconnected"}, 503)
-        except (M.MacroError, ValueError, KeyError) as e:
+        except (M.MacroError, ValueError, KeyError, TypeError) as e:
             return self._send_json({"error": str(e), "kind": "invalid"}, 400)
         except OSError as e:
             return self._send_json({"error": str(e), "kind": "io"}, 500)
@@ -568,14 +758,16 @@ def resync_device():
     if not AttackSharkX3.discover():
         return False
     with _lock:
-        with mouse:
-            mouse.apply()
+        _push_state(PR.effective(mouse.state))
     return True
 
 
 def serve(port=DEFAULT_PORT, open_browser=True):
     _load_battery_cache()          # show the last known level immediately
     threading.Thread(target=_status_monitor, daemon=True).start()
+    PR.WATCHER.load_state = lambda: AttackSharkX3().state
+    PR.WATCHER.on_change = _profile_switch
+    PR.WATCHER.start()
     try:
         _sync_engine(AttackSharkX3())        # restore bindings from last run
     except Exception:

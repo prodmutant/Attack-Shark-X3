@@ -141,8 +141,8 @@ body::before{ opacity:var(--art-opacity); }
 body::after{
   background:linear-gradient(90deg,
     rgb(var(--scrim)) 0%,
-    rgba(var(--scrim),.82) 46%,
-    rgba(var(--scrim),.55) 100%);
+    rgba(var(--scrim),.93) 55%,
+    rgba(var(--scrim),.66) 100%);
 }
 /* light themes drop the artwork and the scrim entirely - the drawing is
    bone white, which is invisible on them */

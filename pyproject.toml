@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "attackshark-x3"
-version = "1.1.0"
+version = "1.2.0"
 description = "Open driver for the Attack Shark X3 wireless mouse"
 readme = "README.md"
 requires-python = ">=3.8"
